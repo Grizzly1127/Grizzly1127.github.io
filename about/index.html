@@ -22,16 +22,18 @@
 
   <meta name="description" content="C++、Go、Python、shell、Redis、Mysql">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Grizzly">
-<meta property="og:url" content="http://example.com/archives/index.html">
+<meta property="og:title" content="about">
+<meta property="og:url" content="http://example.com/about/index.html">
 <meta property="og:site_name" content="Grizzly">
 <meta property="og:description" content="C++、Go、Python、shell、Redis、Mysql">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-09-21T07:36:05.000Z">
+<meta property="article:modified_time" content="2020-09-21T07:37:13.943Z">
 <meta property="article:author" content="李辉雄">
 <meta property="article:tag" content="C++、Go、Python、shell、Redis、Mysql">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="http://example.com/archives/">
+<link rel="canonical" href="http://example.com/about/">
 
 
 <script id="page-configurations">
@@ -44,7 +46,8 @@
   };
 </script>
 
-  <title>归档 | Grizzly</title>
+  <title>about | Grizzly
+</title>
   
 
 
@@ -156,57 +159,48 @@
       <div class="main-inner">
         <div class="content-wrap">
           
+  
+  
 
-          <div class="content archive">
+          <div class="content page posts-expand">
             
 
+    
+    
+    
+    <div class="post-block" lang="zh-CN">
+      <header class="post-header">
+
+<h1 class="post-title" itemprop="name headline">about
+</h1>
+
+<div class="post-meta">
   
-  
-  
-  <div class="post-block">
-    <div class="posts-collapse">
-      <div class="collection-title">
-        <span class="collection-header">嗯..! 目前共计 1 篇日志。 继续努力。</span>
-      </div>
+
+</div>
+
+</header>
 
       
-    <div class="collection-year">
-      <span class="collection-header">2020</span>
-    </div>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2020-09-21T11:47:38+08:00"
-              content="2020-09-21">
-          09-21
-        </time>
+      
+      
+      <div class="post-body">
+          
       </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2020/09/21/hello-world/" itemprop="url">
-            <span itemprop="name">Hello World</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-
+      
+      
+      
     </div>
-  </div>
-  
-  
-  
+    
 
-  
-
+    
+    
+    
 
 
           </div>
           
+    <div class="comments" id="gitalk-container"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {
@@ -419,6 +413,25 @@ window.addEventListener('pjax:success', () => {
 
   
 
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '83e621afbb975e7ae373',
+      clientSecret: '51509442793886cbca7c0d7508b24c3ae0e38d28',
+      repo        : 'https://grizzly1127.github.io/',
+      owner       : 'Grizzly1127',
+      admin       : ['Grizzly1127'],
+      id          : '3be7aa98d992907175cbd79c194399f2',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
 
     </div>
 </body>
