@@ -168,7 +168,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/09/21/Redis%E6%BA%90%E7%A0%81-%E5%86%85%E5%AD%98%E5%88%86%E9%85%8Dzmalloc/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-rax/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -182,7 +182,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2020/09/21/Redis%E6%BA%90%E7%A0%81-%E5%86%85%E5%AD%98%E5%88%86%E9%85%8Dzmalloc/" class="post-title-link" itemprop="url">Redis源码-内存分配zmalloc</a>
+            <a href="/Redis/first-stage/redis-parse-rax/" class="post-title-link" itemprop="url">Redis源码-基数树rax</a>
         </h2>
 
         <div class="post-meta">
@@ -193,7 +193,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 16:09:22 / 修改时间：16:23:48" itemprop="dateCreated datePublished" datetime="2020-09-21T16:09:22+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-21 17:09:04 / 修改时间：17:18:01" itemprop="dateCreated datePublished" datetime="2020-09-21T17:09:04+08:00">2020-09-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -202,6 +202,10 @@
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
                 </span>
             </span>
 
@@ -217,11 +221,11 @@
 
       
           <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：zmalloc.c/zmalloc.h  </p>
-<p>因为Redis没有自己实现内存池，所以系统内存分配器的性能及碎片率会对redis造成一些性能上的影响。<br>Redis采用了3种内存分配器：tcmalloc、jemalloc、malloc。<br>Redis在编译时，首先会判断是否使用tcmalloc，其次是jemalloc，如果都没有使用，则使用libc中的内存管理函数malloc。<br></p>
+<p>源码位置：rax.c/rax.h</p>
+<p>Redis 5.0版本引入的一个新的数据结构。目前主要用在stream这个数据结构上。Rax是一个有序字典树（基数树），按照key的字典序排列，支持快速定位、查找和删除操作。<br></p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2020/09/21/Redis%E6%BA%90%E7%A0%81-%E5%86%85%E5%AD%98%E5%88%86%E9%85%8Dzmalloc/#more" rel="contents">
+              <a class="btn" href="/Redis/first-stage/redis-parse-rax/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -245,7 +249,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/09/21/Redis%E6%BA%90%E7%A0%81-%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2sds/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-listpack/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -259,7 +263,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/2020/09/21/Redis%E6%BA%90%E7%A0%81-%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2sds/" class="post-title-link" itemprop="url">Redis源码-动态字符串sds</a>
+            <a href="/Redis/first-stage/redis-parse-listpack/" class="post-title-link" itemprop="url">Redis源码-紧凑列表listpack</a>
         </h2>
 
         <div class="post-meta">
@@ -270,7 +274,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 16:09:19 / 修改时间：16:19:36" itemprop="dateCreated datePublished" datetime="2020-09-21T16:09:19+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-21 17:08:58 / 修改时间：17:15:55" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:58+08:00">2020-09-21</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -279,6 +283,578 @@
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
                   <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：listpack.c/listpack.h</p>
+<p>Redis 5.0版本引入的一个新的数据结构，它是对ziplist压缩列表的改进，listpack结构更为精简，更加节省内存空间。它的实现方式也和ziplist很类似，所以阅读理解起来并不难。也许该数据结构设计出来是要替代ziplist的，只不过ziplist目前在redis中的应用非常广泛，替换起来复杂度很高，所以目前该数据结构只有在新引入的stream数据结构中使用，可能将来有一天会全面替换ziplist。  </p>
+<p>相对于ziplist，listpack取消了存储前置节点长度的字段，listpack的节点之间是相互独立的，改变前置节点的长度，不会影响到后续节点的长度，所以再也不需要连锁更新操作。<br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-listpack/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-quicklist/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-quicklist/" class="post-title-link" itemprop="url">Redis源码-快速列表quicklist</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 17:08:53 / 修改时间：17:14:48" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:53+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：quicklist.c/quicklist.h</p>
+<p>Redis3.2版本以前的列表底层的编码是ziplist和linkedlist(adlist.c)实现的，3.2版本后引入了quicklist的数据结构，列表底层都由quicklist来实现。本质上，quicklist是由ziplist和linkedlist结合而成。所以，学习quicklist之前，需要明白<a href="./redis-parse-zskiplist">ziplist</a>的原理。<br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-quicklist/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-ziplist/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-ziplist/" class="post-title-link" itemprop="url">Redis源码-压缩列表ziplist</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 17:08:45 / 修改时间：17:11:34" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:45+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：ziplist.c/ziplist.h</p>
+<p>ziplist在redis中主要用于Hash与List数据结构的底层实现之一，ziplist没有定义专门的结构体，其在内存块中的表示如下图所示：<br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-ziplist/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-intset/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-intset/" class="post-title-link" itemprop="url">Redis源码-整数集合intset</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 17:08:38 / 修改时间：17:10:07" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:38+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：intset.c/intset.h  </p>
+<p>intset用来实现redis的set对象的数据结构之一（当元素较少且为数字类型时）。<br>为了节省内存的使用，创建intset的时候，使用最小的int类型（int16_t），当插入的整数大于int16_t时，将会进行对应的字节提升（int32_t或者int64_t），这种提升是不可逆的。<br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-intset/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-zskiplist/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-zskiplist/" class="post-title-link" itemprop="url">Redis源码-跳跃表zskiplist</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 17:03:25 / 修改时间：17:07:42" itemprop="dateCreated datePublished" datetime="2020-09-21T17:03:25+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：t_zset.c/server.h</p>
+<p>跳跃表是zset有序集合的底层实现之一。<br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-zskiplist/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-dict/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-dict/" class="post-title-link" itemprop="url">Redis源码-字典dict</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 17:00:45 / 修改时间：17:02:54" itemprop="dateCreated datePublished" datetime="2020-09-21T17:00:45+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：dict.c/dict.h  </p>
+<p>Redis的字典是由两个HashTable（后面简称ht[0]、ht[1]）构成，与其他字典不同的是，当当前的hashtable负载过高时，redis的字典会进行rehash（重新计算hash），rehash的过程是渐进式的，并不会一下子把所有的数据转移到另一张hashtable中，否则那样会造成服务短暂时间内无法使用。<br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-dict/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-adlist/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-adlist/" class="post-title-link" itemprop="url">Redis源码-双端链表adlist</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 16:50:59 / 修改时间：16:59:16" itemprop="dateCreated datePublished" datetime="2020-09-21T16:50:59+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：adlist.c/adlist.h  </p>
+<p>很好理解的双端链表，结构如下，不多做解释了。<br><img src="/Redis/first-stage/redis-parse-adlist/adlist.png" alt="list"><br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-adlist/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-sds/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-sds/" class="post-title-link" itemprop="url">Redis源码-动态字符串sds</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 16:50:01 / 修改时间：16:59:07" itemprop="dateCreated datePublished" datetime="2020-09-21T16:50:01+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
                 </span>
             </span>
 
@@ -298,7 +874,88 @@
 <p>因为C语言没有实现动态字符串，所以redis实现了sds（simple dynamic string）简单动态字符串。既然是动态的，意味着它是能够支持修改的。​虽然是简单的动态字符串，但是redis为了省内存，快速获得字符串长度等需求，redis作者在结构上可是煞费苦心了。​<br></p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2020/09/21/Redis%E6%BA%90%E7%A0%81-%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2sds/#more" rel="contents">
+              <a class="btn" href="/Redis/first-stage/redis-parse-sds/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-malloc/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/Redis/first-stage/redis-parse-malloc/" class="post-title-link" itemprop="url">Redis源码-内存分配zmalloc</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-09-21 16:47:10 / 修改时间：16:58:22" itemprop="dateCreated datePublished" datetime="2020-09-21T16:47:10+08:00">2020-09-21</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
+<p>源码位置：zmalloc.c/zmalloc.h  </p>
+<p>因为Redis没有自己实现内存池，所以系统内存分配器的性能及碎片率会对redis造成一些性能上的影响。<br>Redis采用了3种内存分配器：tcmalloc、jemalloc、malloc。<br>Redis在编译时，首先会判断是否使用tcmalloc，其次是jemalloc，如果都没有使用，则使用libc中的内存管理函数malloc。<br></p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/Redis/first-stage/redis-parse-malloc/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -386,14 +1043,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
