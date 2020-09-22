@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="源码位置：rax.c&#x2F;rax.h Redis 5.0版本引入的一个新的数据结构。目前主要用在stream这个数据结构上。Rax是一个有序字典树（基数树），按照key的字典序排列，支持快速定位、查找和删除操作。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码-基数树rax">
+<meta property="og:url" content="http://example.com/Redis/1-data-structure/redis-parse-rax/index.html">
+<meta property="og:site_name" content="Grizzly">
+<meta property="og:description" content="源码位置：rax.c&#x2F;rax.h Redis 5.0版本引入的一个新的数据结构。目前主要用在stream这个数据结构上。Rax是一个有序字典树（基数树），按照key的字典序排列，支持快速定位、查找和删除操作。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_node.png">
+<meta property="og:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_compr.png">
+<meta property="og:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_new.png">
+<meta property="og:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_insert_1.png">
+<meta property="og:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_insert_2.png">
+<meta property="og:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_insert_3.png">
+<meta property="og:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_insert_4.png">
+<meta property="article:published_time" content="2020-09-21T09:09:04.000Z">
+<meta property="article:modified_time" content="2020-09-22T03:31:20.204Z">
+<meta property="article:author" content="李辉雄">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/Redis/1-data-structure/redis-parse-rax/rax_node.png">
+
+<link rel="canonical" href="http://example.com/Redis/1-data-structure/redis-parse-rax/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Redis源码-基数树rax | Grizzly</title>
+  
+
+
+  <script data-pjax>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?9a8d6781d509714e86bffed13a6f0b71";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Grizzly" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Grizzly</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">记录点点滴滴</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/Grizzly1127" class="github-corner" title="Grizzly1127 GitHub" aria-label="Grizzly1127 GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/1-data-structure/redis-parse-rax/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="C++、Go、Python、shell、Redis、Mysql">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis源码-基数树rax
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-09-21 17:09:04" itemprop="dateCreated datePublished" datetime="2020-09-21T17:09:04+08:00">2020-09-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-22 11:31:20" itemprop="dateModified" datetime="2020-09-22T11:31:20+08:00">2020-09-22</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/1-data-structure/" itemprop="url" rel="index"><span itemprop="name">1-data-structure</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>源码位置：rax.c/rax.h</p>
+<p>Redis 5.0版本引入的一个新的数据结构。目前主要用在stream这个数据结构上。Rax是一个有序字典树（基数树），按照key的字典序排列，支持快速定位、查找和删除操作。<br><a id="more"></a><br><strong>一、Rax数据结构：</strong><br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/Redis/1-data-structure/redis-parse-rax/rax_node.png" alt="rax_node"><br>字段说明：</p>
+<ol>
+<li>iskey：占用1个bit。表示该节点是否包含key。<ul>
+<li>0：没有key</li>
+<li>1：表示从头结点到该节点的父节点的路径完整的存储了key，查找的时候按子节点iskey=1判断key是否存在</li>
+</ul>
+</li>
+<li>isnull：占用1个bit。表示该节点是否存储value值。</li>
+<li>iscompr：占用1个bit。表示该节点是否为压缩节点，决定了data的存储结构（如果当前节点有多个子节点，为非压缩结构，如果只有一个子节点，则为压缩结构）。</li>
+<li>size：占用29个bit。<ul>
+<li>非压缩：子节点的数量</li>
+<li>压缩：该节点字符个数</li>
+</ul>
+</li>
+<li><p>data：柔性数组。包含路由键，子节点指针，value指针。为了提高cpu性能，data内存空间对齐(sizeof(void*))，所以会根据计算结果来进行相应的字节填充。</p>
+<ul>
+<li><p>非压缩节点的data伪代码：</p>
+ <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">data</span> &#123;</span></span><br><span class="line">     <span class="keyword">char</span>[] childKey; <span class="comment">// 路由键字符列表</span></span><br><span class="line">     raxNode*[] childNodes; <span class="comment">// 多个子节点指针</span></span><br><span class="line">     <span class="keyword">void</span>* value; <span class="comment">// 取决于 header 的 isNull 字段</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>压缩节点的data伪代码：</p>
+ <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">data</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">        <span class="keyword">char</span>[] childKey; <span class="comment">// 路由键字符列表</span></span><br><span class="line">        raxNode* childNodes; <span class="comment">// 单个子节点指针</span></span><br><span class="line">    &#125; child; <span class="comment">// 取决于 header 的 size 字段是否为零（如果是叶节点，则不存在child）</span></span><br><span class="line">     <span class="keyword">void</span>* value; <span class="comment">// 取决于 header 的 isNull 字段</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>  非压缩与压缩节点图示如下：<br> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/Redis/1-data-structure/redis-parse-rax/rax_compr.png" alt="data_compre"></p>
+</li>
+</ul>
+</li>
+</ol>
+<p><strong>二、Rax创建：</strong><br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/Redis/1-data-structure/redis-parse-rax/rax_new.png" alt="rax_new">  </p>
+<p><strong>三、Rax插入：</strong><br>ps：以下内容中的padding皆是为了内存对齐填充的空间。  </p>
+<p><strong>1. 在空的基数树中插入数据：<dog, "狗是人类的朋友"></dog,></strong><br>解析：<br>首先从头结点开始查找，因为这是一个空的基数树，所以直接将”dog”插入到节点中，设置该节点为压缩节点（iscompr=1）,padding部分是为了内存对齐而填充的，创建该节点的叶子结点，叶子结点中，iskey=1是表示从头结点到该节点的父节点是一个完整的key，iskey=1 &amp;&amp; isnull=0表示该叶子结点存储了key的value。<br>结果如下图：<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/Redis/1-data-structure/redis-parse-rax/rax_insert_1.png" alt="rax_insert_1"></p>
+<p><strong>2. 接着插入数据：<cat, "猫咪很可爱"></cat,></strong><br>解析：<br>接着上面的基数树，从头结点开始查找，当前头结点存储的第一个字符是’d’，与要插入的key的第一个字符’c’不相等，所以需要将该节点拆分成两个节点（拆分的过程可看我下面的源码注释），分别存储[d]和[og]，此时基数树有3个节点。随后将字符’c’插入到首节点中，接着创建’c’子节点，将[at]插入到子节点中，并创建子节点的叶节点插入value的指针，此时基数树存在5个节点，元素个数为2。<br>结果如下图：<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/Redis/1-data-structure/redis-parse-rax/rax_insert_2.png" alt="rax_insert_2"></p>
+<p><strong>3. 接着插入数据：<doggy, "小狗很可爱"></doggy,></strong><br>解析：<br>接着上面的基数树，从头结点开始查找key[‘doggy’]，发现头结点只有一个’d’，接着在’d’的子节点node_1中比较[‘oggy’]，找到[‘og’]，’og’的子节点为叶子结点，这时只要直接把[‘gy’]插入到叶子结点中，并创建一个’gy’的叶子结点插入value指针，即可完成插入。此时该基数树的节点数为6，元素个数为3。<br>结果如下图：<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/Redis/1-data-structure/redis-parse-rax/rax_insert_3.png" alt="rax_insert_3"></p>
+<p><strong>4. 接着插入数据：<carry, "携带"></carry,></strong><br>解析：<br>步骤如上一步，当匹配到节点[‘at’]时，需要拆分该节点为[‘a’]节点和[‘rt’]节点， [‘a’]为[‘rt’]的父节点，[‘rt’]节点为非压缩节点，’r’指针指向新的节点[‘ry’]，并创建[‘ry’]的叶子结点，’t’指针指向原先的叶子结点，基数树右边部分保持不变，完成插入操作。此时该基数树的节点数为9，元素个数为4。<br>结果如下图：<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/Redis/1-data-structure/redis-parse-rax/rax_insert_4.png" alt="rax_insert_4"></p>
+<p><strong>四、Rax查找：</strong><br>查找实现函数为：raxLowWalk()<br>从基数树的头节点往下遍历。比较节点的data值，并通过子节点指针往下继续遍历，直到找到完整的key。</p>
+<p><strong>五、Rax删除：</strong><br>分为几个步骤：  </p>
+<ol>
+<li>通过raxLowWalk()找到要删除的key的节点</li>
+<li>接着判断删除后，附近节点是否可以进行压缩、收敛树的高度</li>
+<li><p>如果可以压缩，则进行压缩合并，合并的条件如下：</p>
+<ul>
+<li>iskey=1的节点</li>
+<li>子节点只有一个字符</li>
+<li>父节点只有一个子节点</li>
+</ul>
+</li>
+</ol>
+<h2 id="结构体与宏定义"><a href="#结构体与宏定义" class="headerlink" title="结构体与宏定义"></a>结构体与宏定义</h2><hr>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RAX_NODE_MAX_SIZE ((1&lt;&lt;29)-1)</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">raxNode</span> &#123;</span></span><br><span class="line">    <span class="keyword">uint32_t</span> iskey:<span class="number">1</span>;       <span class="comment">// 该节点是否包含key，1个bit</span></span><br><span class="line">    <span class="keyword">uint32_t</span> isnull:<span class="number">1</span>;      <span class="comment">// 该该节点是否存储value值，1个bit</span></span><br><span class="line">    <span class="keyword">uint32_t</span> iscompr:<span class="number">1</span>;     <span class="comment">// 该节点是否压缩，1个bit</span></span><br><span class="line">    <span class="keyword">uint32_t</span> size:<span class="number">29</span>;       <span class="comment">// 子节点的数量或者是压缩字符串的长度，29个bit</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> data[];   <span class="comment">// 柔性数组，保存节点对应的数据，0bit</span></span><br><span class="line">&#125; raxNode; <span class="comment">// raxNode size：4byte</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">rax</span> &#123;</span></span><br><span class="line">    raxNode *head;      <span class="comment">// 头节点</span></span><br><span class="line">    <span class="keyword">uint64_t</span> numele;    <span class="comment">// 元素个数</span></span><br><span class="line">    <span class="keyword">uint64_t</span> numnodes;  <span class="comment">// 节点数</span></span><br><span class="line">&#125; rax;</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RAX_STACK_STATIC_ITEMS 32</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">raxStack</span> &#123;</span></span><br><span class="line">    <span class="keyword">void</span> **<span class="built_in">stack</span>; <span class="comment">// 存储每一层节点的地址</span></span><br><span class="line">    <span class="keyword">size_t</span> items, maxitems;</span><br><span class="line">    <span class="keyword">void</span> *static_items[RAX_STACK_STATIC_ITEMS];</span><br><span class="line">    <span class="keyword">int</span> oom;</span><br><span class="line">&#125; raxStack; <span class="comment">// 用于迭代，查找，删除的时候记录节点信息的栈结构，FILO</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RAX_ITER_STATIC_LEN 128</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RAX_ITER_JUST_SEEKED (1&lt;&lt;0)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RAX_ITER_EOF (1&lt;&lt;1)</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RAX_ITER_SAFE (1&lt;&lt;2)</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">raxIterator</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> flags;</span><br><span class="line">    rax *rt;                <span class="comment">// 需要迭代的基数树</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *key;     <span class="comment">/* The current string. */</span></span><br><span class="line">    <span class="keyword">void</span> *data;             <span class="comment">/* Data associated to this key. */</span></span><br><span class="line">    <span class="keyword">size_t</span> key_len;         <span class="comment">/* Current key length. */</span></span><br><span class="line">    <span class="keyword">size_t</span> key_max;         <span class="comment">/* Max key len the current key buffer can hold. */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> key_static_string[RAX_ITER_STATIC_LEN];</span><br><span class="line">    raxNode *node;          <span class="comment">/* Current node. Only for unsafe iteration. */</span></span><br><span class="line">    raxStack <span class="built_in">stack</span>;         <span class="comment">/* Stack used for unsafe iteration. */</span></span><br><span class="line">    raxNodeCallback node_cb; <span class="comment">/* Optional node callback. Normally set to NULL. */</span></span><br><span class="line">&#125; raxIterator;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* 为了内存对齐填充的字节，为什么需要填充，本质上来说是为了提高cpu性能。填充之后的数据首地址按照</span></span><br><span class="line"><span class="comment"> * sizeof(void*)字节对齐，保证每个节点都是内存对齐的：</span></span><br><span class="line"><span class="comment"> * 在64位系统中(sizeof(void*)=8)，节点大小如下：</span></span><br><span class="line"><span class="comment"> * 1. [header-4][padding-4] = 8byte</span></span><br><span class="line"><span class="comment"> * 2. [header-4][data-2][padding-2] = 8byte</span></span><br><span class="line"><span class="comment"> * 3. [header-4][data-11][padding-1] = 16byte</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> raxPadding(nodesize) ((sizeof(void*)-((nodesize+4) % sizeof(void*))) &amp; (sizeof(void*)-1))</span></span><br></pre></td></tr></table></figure>
+<h2 id="函数功能总览"><a href="#函数功能总览" class="headerlink" title="函数功能总览"></a>函数功能总览</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">rax *<span class="title">raxNew</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxInsert</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len, <span class="keyword">void</span> *data, <span class="keyword">void</span> **old)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxTryInsert</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len, <span class="keyword">void</span> *data, <span class="keyword">void</span> **old)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxRemove</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len, <span class="keyword">void</span> **old)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">raxFind</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raxFree</span><span class="params">(rax *rax)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raxFreeWithCallback</span><span class="params">(rax *rax, <span class="keyword">void</span> (*free_callback)(<span class="keyword">void</span>*))</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raxStart</span><span class="params">(raxIterator *it, rax *rt)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxSeek</span><span class="params">(raxIterator *it, <span class="keyword">const</span> <span class="keyword">char</span> *op, <span class="keyword">unsigned</span> <span class="keyword">char</span> *ele, <span class="keyword">size_t</span> len)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxNext</span><span class="params">(raxIterator *it)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxPrev</span><span class="params">(raxIterator *it)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxRandomWalk</span><span class="params">(raxIterator *it, <span class="keyword">size_t</span> steps)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxCompare</span><span class="params">(raxIterator *iter, <span class="keyword">const</span> <span class="keyword">char</span> *op, <span class="keyword">unsigned</span> <span class="keyword">char</span> *key, <span class="keyword">size_t</span> key_len)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raxStop</span><span class="params">(raxIterator *it)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxEOF</span><span class="params">(raxIterator *it)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raxShow</span><span class="params">(rax *rax)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">uint64_t</span> <span class="title">raxSize</span><span class="params">(rax *rax)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">raxTouch</span><span class="params">(raxNode *n)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raxSetDebugMsg</span><span class="params">(<span class="keyword">int</span> onoff)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Internal API. May be used by the node callback in order to access rax nodes</span></span><br><span class="line"><span class="comment"> * in a low level way, so this function is exported as well. */</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">raxSetData</span><span class="params">(raxNode *n, <span class="keyword">void</span> *data)</span></span>;</span><br></pre></td></tr></table></figure>
+<h2 id="主要函数实现"><a href="#主要函数实现" class="headerlink" title="主要函数实现"></a>主要函数实现</h2><hr>
+<p><strong>创建：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建基数树</span></span><br><span class="line"><span class="function">rax *<span class="title">raxNew</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    rax *rax = rax_malloc(<span class="keyword">sizeof</span>(*rax)); <span class="comment">// sizeof(*rax) = 4</span></span><br><span class="line">    <span class="keyword">if</span> (rax == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    rax-&gt;numele = <span class="number">0</span>;</span><br><span class="line">    rax-&gt;numnodes = <span class="number">1</span>;</span><br><span class="line">    rax-&gt;head = raxNewNode(<span class="number">0</span>,<span class="number">0</span>); <span class="comment">// 创建首节点</span></span><br><span class="line">    <span class="keyword">if</span> (rax-&gt;head == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        rax_free(rax);</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> rax;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 创建一个节点</span></span><br><span class="line"><span class="function">raxNode *<span class="title">raxNewNode</span><span class="params">(<span class="keyword">size_t</span> children, <span class="keyword">int</span> datafield)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">size_t</span> nodesize = <span class="keyword">sizeof</span>(raxNode)+children+raxPadding(children)+</span><br><span class="line">                      <span class="keyword">sizeof</span>(raxNode*)*children;</span><br><span class="line">    <span class="keyword">if</span> (datafield) nodesize += <span class="keyword">sizeof</span>(<span class="keyword">void</span>*);</span><br><span class="line">    raxNode *node = rax_malloc(nodesize);</span><br><span class="line">    <span class="keyword">if</span> (node == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    node-&gt;iskey = <span class="number">0</span>;</span><br><span class="line">    node-&gt;isnull = <span class="number">0</span>;</span><br><span class="line">    node-&gt;iscompr = <span class="number">0</span>;</span><br><span class="line">    node-&gt;size = children;</span><br><span class="line">    <span class="keyword">return</span> node;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>查找：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">size_t</span> <span class="title">raxLowWalk</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len, raxNode **stopnode, raxNode ***plink, <span class="keyword">int</span> *splitpos, raxStack *ts)</span> </span>&#123;</span><br><span class="line">    raxNode *h = rax-&gt;head; <span class="comment">// 从头节点开始往下遍历</span></span><br><span class="line">    raxNode **parentlink = &amp;rax-&gt;head;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">size_t</span> i = <span class="number">0</span>; <span class="comment">/* Position in the string. */</span></span><br><span class="line">    <span class="keyword">size_t</span> j = <span class="number">0</span>; <span class="comment">/* Position in the node children (or bytes if compressed).*/</span></span><br><span class="line">    <span class="keyword">while</span>(h-&gt;size &amp;&amp; i &lt; len) &#123;</span><br><span class="line">        debugnode(<span class="string">&quot;Lookup current node&quot;</span>,h);</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *v = h-&gt;data;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (h-&gt;iscompr) &#123;</span><br><span class="line">            <span class="comment">/* 如果是压缩节点，表明该节点存储的全部字符应该和s中的部分或者全部字符相等</span></span><br><span class="line"><span class="comment">             * 例如：</span></span><br><span class="line"><span class="comment">             * 1. node:[header|&#x27;abcd&#x27;|d-ptr]  s:[&#x27;abc&#x27;]  那么j=3</span></span><br><span class="line"><span class="comment">             * 2. node:[header|&#x27;ab&#x27;|b-ptr] s:[&#x27;abc&#x27;] 继续往下遍历节点(b-ptr)找到字符&#x27;C&#x27;</span></span><br><span class="line"><span class="comment">             *    然后在子节点中确定&#x27;c&#x27;的位置j */</span></span><br><span class="line">            <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; h-&gt;size &amp;&amp; i &lt; len; j++, i++) &#123;</span><br><span class="line">                <span class="keyword">if</span> (v[j] != s[i]) <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (j != h-&gt;size) <span class="keyword">break</span>; <span class="comment">// 表示已经找到节点，退出循环</span></span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">/* 如果是非压缩节点，找到s[i]字符的位置j</span></span><br><span class="line"><span class="comment">             * 例如：</span></span><br><span class="line"><span class="comment">             * node:[header|&#x27;abc&#x27;|&#x27;a-ptr&#x27;|&#x27;b-ptr&#x27;|&#x27;c-ptr&#x27;]， s[i]:[&#x27;b&#x27;]，那么j=1</span></span><br><span class="line"><span class="comment">             * 然后可以根据j来确定子节点的地址&#x27;b-ptr&#x27;，便可继续往下遍历 */</span></span><br><span class="line">            <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; h-&gt;size; j++) &#123;</span><br><span class="line">                <span class="keyword">if</span> (v[j] == s[i]) <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (j == h-&gt;size) <span class="keyword">break</span>;</span><br><span class="line">            i++;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (ts) raxStackPush(ts,h); <span class="comment">// 将当前节点压入栈中</span></span><br><span class="line">        raxNode **children = raxNodeFirstChildPtr(h); <span class="comment">// 获取当前节点的第一个子节点指针的地址</span></span><br><span class="line">        <span class="keyword">if</span> (h-&gt;iscompr) j = <span class="number">0</span>; <span class="comment">/* 压缩节点不需要设置偏移量j */</span></span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;h,children+j,<span class="keyword">sizeof</span>(h)); <span class="comment">// 根据偏移量j计算得到子节点的指针，并拷贝给h，接着继续while循环往下遍历</span></span><br><span class="line">        parentlink = children+j;</span><br><span class="line">        j = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    debugnode(<span class="string">&quot;Lookup stop node is&quot;</span>,h);</span><br><span class="line">    <span class="keyword">if</span> (stopnode) *stopnode = h;</span><br><span class="line">    <span class="keyword">if</span> (plink) *plink = parentlink;</span><br><span class="line">    <span class="keyword">if</span> (splitpos &amp;&amp; h-&gt;iscompr) *splitpos = j;</span><br><span class="line">    <span class="keyword">return</span> i;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">raxFind</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len)</span> </span>&#123;</span><br><span class="line">    raxNode *h;</span><br><span class="line"></span><br><span class="line">    debugf(<span class="string">&quot;### Lookup: %.*s\n&quot;</span>, (<span class="keyword">int</span>)len, s);</span><br><span class="line">    <span class="keyword">int</span> splitpos = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">size_t</span> i = raxLowWalk(rax,s,len,&amp;h,<span class="literal">NULL</span>,&amp;splitpos,<span class="literal">NULL</span>);</span><br><span class="line">    <span class="keyword">if</span> (i != len || (h-&gt;iscompr &amp;&amp; splitpos != <span class="number">0</span>) || !h-&gt;iskey)</span><br><span class="line">        <span class="keyword">return</span> raxNotFound;</span><br><span class="line">    <span class="keyword">return</span> raxGetData(h);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>插入：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxGenericInsert</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len, <span class="keyword">void</span> *data, <span class="keyword">void</span> **old, <span class="keyword">int</span> overwrite)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">size_t</span> i;</span><br><span class="line">    <span class="keyword">int</span> j = <span class="number">0</span>;</span><br><span class="line">    raxNode *h, **parentlink;</span><br><span class="line"></span><br><span class="line">    debugf(<span class="string">&quot;### Insert %.*s with value %p\n&quot;</span>, (<span class="keyword">int</span>)len, s, data);</span><br><span class="line">    i = raxLowWalk(rax,s,len,&amp;h,&amp;parentlink,&amp;j,<span class="literal">NULL</span>); <span class="comment">// 确定插入的节点位置，如果是压缩节点，确定分割位置j</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果s已经存在于rax中</span></span><br><span class="line">    <span class="keyword">if</span> (i == len &amp;&amp; (!h-&gt;iscompr || j == <span class="number">0</span>)) &#123;</span><br><span class="line">        debugf(<span class="string">&quot;### Insert: node representing key exists\n&quot;</span>);</span><br><span class="line">        <span class="keyword">if</span> (!h-&gt;iskey || (h-&gt;isnull &amp;&amp; overwrite)) &#123;</span><br><span class="line">            h = raxReallocForData(h,data); <span class="comment">// 为值指针分配空间</span></span><br><span class="line">            <span class="keyword">if</span> (h) <span class="built_in">memcpy</span>(parentlink,&amp;h,<span class="keyword">sizeof</span>(h));</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (h == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            errno = ENOMEM;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Update the existing key if there is already one. */</span></span><br><span class="line">        <span class="keyword">if</span> (h-&gt;iskey) &#123;</span><br><span class="line">            <span class="comment">// 如果该key以存在，则根据需要是否重写value</span></span><br><span class="line">            <span class="keyword">if</span> (old) *old = raxGetData(h);</span><br><span class="line">            <span class="keyword">if</span> (overwrite) raxSetData(h,data);</span><br><span class="line">            errno = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>; <span class="comment">/* Element already exists. */</span></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Otherwise set the node as a key. Note that raxSetData()</span></span><br><span class="line"><span class="comment">         * will set h-&gt;iskey. */</span></span><br><span class="line">        <span class="comment">// 插入value</span></span><br><span class="line">        raxSetData(h,data);</span><br><span class="line">        rax-&gt;numele++;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">/* Element inserted. */</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* ------------------------- ALGORITHM 1 --------------------------- */</span></span><br><span class="line">    <span class="keyword">if</span> (h-&gt;iscompr &amp;&amp; i != len) &#123;</span><br><span class="line">        <span class="comment">// 如果遍历后停在压缩节点上</span></span><br><span class="line">        debugf(<span class="string">&quot;ALGO 1: Stopped at compressed node %.*s (%p)\n&quot;</span>,</span><br><span class="line">            h-&gt;size, h-&gt;data, (<span class="keyword">void</span>*)h);</span><br><span class="line">        debugf(<span class="string">&quot;Still to insert: %.*s\n&quot;</span>, (<span class="keyword">int</span>)(len-i), s+i);</span><br><span class="line">        debugf(<span class="string">&quot;Splitting at %d: &#x27;%c&#x27;\n&quot;</span>, j, ((<span class="keyword">char</span>*)h-&gt;data)[j]);</span><br><span class="line">        debugf(<span class="string">&quot;Other (key) letter is &#x27;%c&#x27;\n&quot;</span>, s[i]);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 1: Save next pointer. */</span></span><br><span class="line">        raxNode **childfield = raxNodeLastChildPtr(h);</span><br><span class="line">        raxNode *next;</span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;next,childfield,<span class="keyword">sizeof</span>(next));</span><br><span class="line">        debugf(<span class="string">&quot;Next is %p\n&quot;</span>, (<span class="keyword">void</span>*)next);</span><br><span class="line">        debugf(<span class="string">&quot;iskey %d\n&quot;</span>, h-&gt;iskey);</span><br><span class="line">        <span class="keyword">if</span> (h-&gt;iskey) &#123;</span><br><span class="line">            debugf(<span class="string">&quot;key value is %p\n&quot;</span>, raxGetData(h));</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Set the length of the additional nodes we will need. */</span></span><br><span class="line">        <span class="keyword">size_t</span> trimmedlen = j;</span><br><span class="line">        <span class="keyword">size_t</span> postfixlen = h-&gt;size - j - <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">int</span> split_node_is_key = !trimmedlen &amp;&amp; h-&gt;iskey &amp;&amp; !h-&gt;isnull;</span><br><span class="line">        <span class="keyword">size_t</span> nodesize;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 2: Create the split node. Also allocate the other nodes we&#x27;ll need</span></span><br><span class="line"><span class="comment">         *    ASAP, so that it will be simpler to handle OOM. */</span></span><br><span class="line">        raxNode *splitnode = raxNewNode(<span class="number">1</span>, split_node_is_key);</span><br><span class="line">        raxNode *trimmed = <span class="literal">NULL</span>;</span><br><span class="line">        raxNode *postfix = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (trimmedlen) &#123;</span><br><span class="line">            nodesize = <span class="keyword">sizeof</span>(raxNode)+trimmedlen+raxPadding(trimmedlen)+</span><br><span class="line">                       <span class="keyword">sizeof</span>(raxNode*);</span><br><span class="line">            <span class="keyword">if</span> (h-&gt;iskey &amp;&amp; !h-&gt;isnull) nodesize += <span class="keyword">sizeof</span>(<span class="keyword">void</span>*);</span><br><span class="line">            trimmed = rax_malloc(nodesize);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (postfixlen) &#123;</span><br><span class="line">            nodesize = <span class="keyword">sizeof</span>(raxNode)+postfixlen+raxPadding(postfixlen)+</span><br><span class="line">                       <span class="keyword">sizeof</span>(raxNode*);</span><br><span class="line">            postfix = rax_malloc(nodesize);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* OOM? Abort now that the tree is untouched. */</span></span><br><span class="line">        <span class="keyword">if</span> (splitnode == <span class="literal">NULL</span> ||</span><br><span class="line">            (trimmedlen &amp;&amp; trimmed == <span class="literal">NULL</span>) ||</span><br><span class="line">            (postfixlen &amp;&amp; postfix == <span class="literal">NULL</span>))</span><br><span class="line">        &#123;</span><br><span class="line">            rax_free(splitnode);</span><br><span class="line">            rax_free(trimmed);</span><br><span class="line">            rax_free(postfix);</span><br><span class="line">            errno = ENOMEM;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        splitnode-&gt;data[<span class="number">0</span>] = h-&gt;data[j];</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (j == <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="comment">/* 3a: Replace the old node with the split node. */</span></span><br><span class="line">            <span class="keyword">if</span> (h-&gt;iskey) &#123;</span><br><span class="line">                <span class="keyword">void</span> *ndata = raxGetData(h);</span><br><span class="line">                raxSetData(splitnode,ndata);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="built_in">memcpy</span>(parentlink,&amp;splitnode,<span class="keyword">sizeof</span>(splitnode));</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">/* 3b: Trim the compressed node. */</span></span><br><span class="line">            trimmed-&gt;size = j;</span><br><span class="line">            <span class="built_in">memcpy</span>(trimmed-&gt;data,h-&gt;data,j);</span><br><span class="line">            trimmed-&gt;iscompr = j &gt; <span class="number">1</span> ? <span class="number">1</span> : <span class="number">0</span>;</span><br><span class="line">            trimmed-&gt;iskey = h-&gt;iskey;</span><br><span class="line">            trimmed-&gt;isnull = h-&gt;isnull;</span><br><span class="line">            <span class="keyword">if</span> (h-&gt;iskey &amp;&amp; !h-&gt;isnull) &#123;</span><br><span class="line">                <span class="keyword">void</span> *ndata = raxGetData(h);</span><br><span class="line">                raxSetData(trimmed,ndata);</span><br><span class="line">            &#125;</span><br><span class="line">            raxNode **cp = raxNodeLastChildPtr(trimmed);</span><br><span class="line">            <span class="built_in">memcpy</span>(cp,&amp;splitnode,<span class="keyword">sizeof</span>(splitnode));</span><br><span class="line">            <span class="built_in">memcpy</span>(parentlink,&amp;trimmed,<span class="keyword">sizeof</span>(trimmed));</span><br><span class="line">            parentlink = cp; <span class="comment">/* Set parentlink to splitnode parent. */</span></span><br><span class="line">            rax-&gt;numnodes++;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 4: Create the postfix node: what remains of the original</span></span><br><span class="line"><span class="comment">         * compressed node after the split. */</span></span><br><span class="line">        <span class="keyword">if</span> (postfixlen) &#123;</span><br><span class="line">            <span class="comment">/* 4a: create a postfix node. */</span></span><br><span class="line">            postfix-&gt;iskey = <span class="number">0</span>;</span><br><span class="line">            postfix-&gt;isnull = <span class="number">0</span>;</span><br><span class="line">            postfix-&gt;size = postfixlen;</span><br><span class="line">            postfix-&gt;iscompr = postfixlen &gt; <span class="number">1</span>;</span><br><span class="line">            <span class="built_in">memcpy</span>(postfix-&gt;data,h-&gt;data+j+<span class="number">1</span>,postfixlen);</span><br><span class="line">            raxNode **cp = raxNodeLastChildPtr(postfix);</span><br><span class="line">            <span class="built_in">memcpy</span>(cp,&amp;next,<span class="keyword">sizeof</span>(next));</span><br><span class="line">            rax-&gt;numnodes++;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">/* 4b: just use next as postfix node. */</span></span><br><span class="line">            postfix = next;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 5: Set splitnode first child as the postfix node. */</span></span><br><span class="line">        raxNode **splitchild = raxNodeLastChildPtr(splitnode);</span><br><span class="line">        <span class="built_in">memcpy</span>(splitchild,&amp;postfix,<span class="keyword">sizeof</span>(postfix));</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 6. Continue insertion: this will cause the splitnode to</span></span><br><span class="line"><span class="comment">         * get a new child (the non common character at the currently</span></span><br><span class="line"><span class="comment">         * inserted key). */</span></span><br><span class="line">        rax_free(h);</span><br><span class="line">        h = splitnode;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (h-&gt;iscompr &amp;&amp; i == len) &#123;</span><br><span class="line">    <span class="comment">/* ------------------------- ALGORITHM 2 --------------------------- */</span></span><br><span class="line">        <span class="comment">// 如果在压缩节点h中找到了所有的字符，则创建一个子节点插入</span></span><br><span class="line">        debugf(<span class="string">&quot;ALGO 2: Stopped at compressed node %.*s (%p) j = %d\n&quot;</span>,</span><br><span class="line">            h-&gt;size, h-&gt;data, (<span class="keyword">void</span>*)h, j);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Allocate postfix &amp; trimmed nodes ASAP to fail for OOM gracefully. */</span></span><br><span class="line">        <span class="keyword">size_t</span> postfixlen = h-&gt;size - j;</span><br><span class="line">        <span class="keyword">size_t</span> nodesize = <span class="keyword">sizeof</span>(raxNode)+postfixlen+raxPadding(postfixlen)+</span><br><span class="line">                          <span class="keyword">sizeof</span>(raxNode*);</span><br><span class="line">        <span class="keyword">if</span> (data != <span class="literal">NULL</span>) nodesize += <span class="keyword">sizeof</span>(<span class="keyword">void</span>*);</span><br><span class="line">        raxNode *postfix = rax_malloc(nodesize);</span><br><span class="line"></span><br><span class="line">        nodesize = <span class="keyword">sizeof</span>(raxNode)+j+raxPadding(j)+<span class="keyword">sizeof</span>(raxNode*);</span><br><span class="line">        <span class="keyword">if</span> (h-&gt;iskey &amp;&amp; !h-&gt;isnull) nodesize += <span class="keyword">sizeof</span>(<span class="keyword">void</span>*);</span><br><span class="line">        raxNode *trimmed = rax_malloc(nodesize);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (postfix == <span class="literal">NULL</span> || trimmed == <span class="literal">NULL</span>) &#123;</span><br><span class="line">            rax_free(postfix);</span><br><span class="line">            rax_free(trimmed);</span><br><span class="line">            errno = ENOMEM;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 1: Save next pointer. */</span></span><br><span class="line">        raxNode **childfield = raxNodeLastChildPtr(h);</span><br><span class="line">        raxNode *next;</span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;next,childfield,<span class="keyword">sizeof</span>(next));</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 2: Create the postfix node. */</span></span><br><span class="line">        postfix-&gt;size = postfixlen;</span><br><span class="line">        postfix-&gt;iscompr = postfixlen &gt; <span class="number">1</span>;</span><br><span class="line">        postfix-&gt;iskey = <span class="number">1</span>;</span><br><span class="line">        postfix-&gt;isnull = <span class="number">0</span>;</span><br><span class="line">        <span class="built_in">memcpy</span>(postfix-&gt;data,h-&gt;data+j,postfixlen);</span><br><span class="line">        raxSetData(postfix,data);</span><br><span class="line">        raxNode **cp = raxNodeLastChildPtr(postfix);</span><br><span class="line">        <span class="built_in">memcpy</span>(cp,&amp;next,<span class="keyword">sizeof</span>(next));</span><br><span class="line">        rax-&gt;numnodes++;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 3: Trim the compressed node. */</span></span><br><span class="line">        trimmed-&gt;size = j;</span><br><span class="line">        trimmed-&gt;iscompr = j &gt; <span class="number">1</span>;</span><br><span class="line">        trimmed-&gt;iskey = <span class="number">0</span>;</span><br><span class="line">        trimmed-&gt;isnull = <span class="number">0</span>;</span><br><span class="line">        <span class="built_in">memcpy</span>(trimmed-&gt;data,h-&gt;data,j);</span><br><span class="line">        <span class="built_in">memcpy</span>(parentlink,&amp;trimmed,<span class="keyword">sizeof</span>(trimmed));</span><br><span class="line">        <span class="keyword">if</span> (h-&gt;iskey) &#123;</span><br><span class="line">            <span class="keyword">void</span> *aux = raxGetData(h);</span><br><span class="line">            raxSetData(trimmed,aux);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Fix the trimmed node child pointer to point to</span></span><br><span class="line"><span class="comment">         * the postfix node. */</span></span><br><span class="line">        cp = raxNodeLastChildPtr(trimmed);</span><br><span class="line">        <span class="built_in">memcpy</span>(cp,&amp;postfix,<span class="keyword">sizeof</span>(postfix));</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* Finish! We don&#x27;t need to continue with the insertion</span></span><br><span class="line"><span class="comment">         * algorithm for ALGO 2. The key is already inserted. */</span></span><br><span class="line">        rax-&gt;numele++;</span><br><span class="line">        rax_free(h);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">/* Key inserted. */</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We walked the radix tree as far as we could, but still there are left</span></span><br><span class="line"><span class="comment">     * chars in our string. We need to insert the missing nodes. */</span></span><br><span class="line">    <span class="keyword">while</span>(i &lt; len) &#123;</span><br><span class="line">        raxNode *child;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* If this node is going to have a single child, and there</span></span><br><span class="line"><span class="comment">         * are other characters, so that that would result in a chain</span></span><br><span class="line"><span class="comment">         * of single-childed nodes, turn it into a compressed node. */</span></span><br><span class="line">        <span class="keyword">if</span> (h-&gt;size == <span class="number">0</span> &amp;&amp; len-i &gt; <span class="number">1</span>) &#123;</span><br><span class="line">            debugf(<span class="string">&quot;Inserting compressed node\n&quot;</span>);</span><br><span class="line">            <span class="keyword">size_t</span> comprsize = len-i;</span><br><span class="line">            <span class="keyword">if</span> (comprsize &gt; RAX_NODE_MAX_SIZE)</span><br><span class="line">                comprsize = RAX_NODE_MAX_SIZE;</span><br><span class="line">            raxNode *newh = raxCompressNode(h,s+i,comprsize,&amp;child);</span><br><span class="line">            <span class="keyword">if</span> (newh == <span class="literal">NULL</span>) <span class="keyword">goto</span> oom;</span><br><span class="line">            h = newh;</span><br><span class="line">            <span class="built_in">memcpy</span>(parentlink,&amp;h,<span class="keyword">sizeof</span>(h));</span><br><span class="line">            parentlink = raxNodeLastChildPtr(h);</span><br><span class="line">            i += comprsize;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            debugf(<span class="string">&quot;Inserting normal node\n&quot;</span>);</span><br><span class="line">            raxNode **new_parentlink;</span><br><span class="line">            raxNode *newh = raxAddChild(h,s[i],&amp;child,&amp;new_parentlink);</span><br><span class="line">            <span class="keyword">if</span> (newh == <span class="literal">NULL</span>) <span class="keyword">goto</span> oom;</span><br><span class="line">            h = newh;</span><br><span class="line">            <span class="built_in">memcpy</span>(parentlink,&amp;h,<span class="keyword">sizeof</span>(h));</span><br><span class="line">            parentlink = new_parentlink;</span><br><span class="line">            i++;</span><br><span class="line">        &#125;</span><br><span class="line">        rax-&gt;numnodes++;</span><br><span class="line">        h = child;</span><br><span class="line">    &#125;</span><br><span class="line">    raxNode *newh = raxReallocForData(h,data);</span><br><span class="line">    <span class="keyword">if</span> (newh == <span class="literal">NULL</span>) <span class="keyword">goto</span> oom;</span><br><span class="line">    h = newh;</span><br><span class="line">    <span class="keyword">if</span> (!h-&gt;iskey) rax-&gt;numele++;</span><br><span class="line">    raxSetData(h,data);</span><br><span class="line">    <span class="built_in">memcpy</span>(parentlink,&amp;h,<span class="keyword">sizeof</span>(h));</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>; <span class="comment">/* Element inserted. */</span></span><br><span class="line"></span><br><span class="line">oom:</span><br><span class="line">    <span class="comment">/* This code path handles out of memory after part of the sub-tree was</span></span><br><span class="line"><span class="comment">     * already modified. Set the node as a key, and then remove it. However we</span></span><br><span class="line"><span class="comment">     * do that only if the node is a terminal node, otherwise if the OOM</span></span><br><span class="line"><span class="comment">     * happened reallocating a node in the middle, we don&#x27;t need to free</span></span><br><span class="line"><span class="comment">     * anything. */</span></span><br><span class="line">    <span class="keyword">if</span> (h-&gt;size == <span class="number">0</span>) &#123;</span><br><span class="line">        h-&gt;isnull = <span class="number">1</span>;</span><br><span class="line">        h-&gt;iskey = <span class="number">1</span>;</span><br><span class="line">        rax-&gt;numele++; <span class="comment">/* Compensate the next remove. */</span></span><br><span class="line">        assert(raxRemove(rax,s,i,<span class="literal">NULL</span>) != <span class="number">0</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    errno = ENOMEM;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>删除：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">raxRemove</span><span class="params">(rax *rax, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">size_t</span> len, <span class="keyword">void</span> **old)</span> </span>&#123;</span><br><span class="line">    raxNode *h;</span><br><span class="line">    raxStack ts;</span><br><span class="line"></span><br><span class="line">    debugf(<span class="string">&quot;### Delete: %.*s\n&quot;</span>, (<span class="keyword">int</span>)len, s);</span><br><span class="line">    raxStackInit(&amp;ts);</span><br><span class="line">    <span class="keyword">int</span> splitpos = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">size_t</span> i = raxLowWalk(rax,s,len,&amp;h,<span class="literal">NULL</span>,&amp;splitpos,&amp;ts); <span class="comment">// 将基数树路径上的节点压入ts栈中</span></span><br><span class="line">    <span class="keyword">if</span> (i != len || (h-&gt;iscompr &amp;&amp; splitpos != <span class="number">0</span>) || !h-&gt;iskey) &#123;</span><br><span class="line">        raxStackFree(&amp;ts);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (old) *old = raxGetData(h); <span class="comment">// 如果需要旧数据，则获取旧数据</span></span><br><span class="line">    h-&gt;iskey = <span class="number">0</span>;</span><br><span class="line">    rax-&gt;numele--;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* If this node has no children, the deletion needs to reclaim the</span></span><br><span class="line"><span class="comment">     * no longer used nodes. This is an iterative process that needs to</span></span><br><span class="line"><span class="comment">     * walk the three upward, deleting all the nodes with just one child</span></span><br><span class="line"><span class="comment">     * that are not keys, until the head of the rax is reached or the first</span></span><br><span class="line"><span class="comment">     * node with more than one child is found. */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> trycompress = <span class="number">0</span>; <span class="comment">/* Will be set to 1 if we should try to optimize the</span></span><br><span class="line"><span class="comment">                            tree resulting from the deletion. */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (h-&gt;size == <span class="number">0</span>) &#123;</span><br><span class="line">        debugf(<span class="string">&quot;Key deleted in node without children. Cleanup needed.\n&quot;</span>);</span><br><span class="line">        raxNode *child = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">while</span>(h != rax-&gt;head) &#123;</span><br><span class="line">            child = h;</span><br><span class="line">            debugf(<span class="string">&quot;Freeing child %p [%.*s] key:%d\n&quot;</span>, (<span class="keyword">void</span>*)child,</span><br><span class="line">                (<span class="keyword">int</span>)child-&gt;size, (<span class="keyword">char</span>*)child-&gt;data, child-&gt;iskey);</span><br><span class="line">            rax_free(child);</span><br><span class="line">            rax-&gt;numnodes--;</span><br><span class="line">            h = raxStackPop(&amp;ts);</span><br><span class="line">             <span class="comment">/* If this node has more then one child, or actually holds</span></span><br><span class="line"><span class="comment">              * a key, stop here. */</span></span><br><span class="line">            <span class="keyword">if</span> (h-&gt;iskey || (!h-&gt;iscompr &amp;&amp; h-&gt;size != <span class="number">1</span>)) <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (child) &#123;</span><br><span class="line">            debugf(<span class="string">&quot;Unlinking child %p from parent %p\n&quot;</span>,</span><br><span class="line">                (<span class="keyword">void</span>*)child, (<span class="keyword">void</span>*)h);</span><br><span class="line">            raxNode *<span class="keyword">new</span> = raxRemoveChild(h,child); <span class="comment">// 删除子节点和父节点相关的信息（data和子节点指针）</span></span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">new</span> != h) &#123;</span><br><span class="line">                raxNode *parent = raxStackPeek(&amp;ts);</span><br><span class="line">                raxNode **parentlink;</span><br><span class="line">                <span class="keyword">if</span> (parent == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                    parentlink = &amp;rax-&gt;head;</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    parentlink = raxFindParentLink(parent,h);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="built_in">memcpy</span>(parentlink,&amp;<span class="keyword">new</span>,<span class="keyword">sizeof</span>(<span class="keyword">new</span>));</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* If after the removal the node has just a single child</span></span><br><span class="line"><span class="comment">             * and is not a key, we need to try to compress it. */</span></span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">new</span>-&gt;size == <span class="number">1</span> &amp;&amp; <span class="keyword">new</span>-&gt;iskey == <span class="number">0</span>) &#123; <span class="comment">// 删除后，如果符合压缩节点结构，则压缩该节点</span></span><br><span class="line">                trycompress = <span class="number">1</span>;</span><br><span class="line">                h = <span class="keyword">new</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (h-&gt;size == <span class="number">1</span>) &#123; <span class="comment">//</span></span><br><span class="line">        <span class="comment">/* 如果该节点只有一个子节点，则进行压缩 */</span></span><br><span class="line">        trycompress = <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 如果是oom错误，则不进行压缩节点操作 */</span></span><br><span class="line">    <span class="keyword">if</span> (trycompress &amp;&amp; ts.oom) trycompress = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (trycompress) &#123;</span><br><span class="line">        debugf(<span class="string">&quot;After removing %.*s:\n&quot;</span>, (<span class="keyword">int</span>)len, s);</span><br><span class="line">        debugnode(<span class="string">&quot;Compression may be needed&quot;</span>,h);</span><br><span class="line">        debugf(<span class="string">&quot;Seek start node\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 从栈中弹出节点，用来判断最高可到达的能进行压缩的节点上。循环结束时，h指向可以尝试压缩的第一个节点，parent表示h的父节点 */</span></span><br><span class="line">        raxNode *parent;</span><br><span class="line">        <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">            parent = raxStackPop(&amp;ts); <span class="comment">// 从栈中弹出节点</span></span><br><span class="line">            <span class="keyword">if</span> (!parent || parent-&gt;iskey ||</span><br><span class="line">                (!parent-&gt;iscompr &amp;&amp; parent-&gt;size != <span class="number">1</span>)) <span class="keyword">break</span>;</span><br><span class="line">            h = parent;</span><br><span class="line">            debugnode(<span class="string">&quot;Going up to&quot;</span>,h);</span><br><span class="line">        &#125;</span><br><span class="line">        raxNode *start = h; <span class="comment">/* Compression starting node. */</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 扫描可以压缩的节点链路 */</span></span><br><span class="line">        <span class="keyword">size_t</span> comprsize = h-&gt;size;</span><br><span class="line">        <span class="keyword">int</span> nodes = <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">while</span>(h-&gt;size != <span class="number">0</span>) &#123;</span><br><span class="line">            raxNode **cp = raxNodeLastChildPtr(h);</span><br><span class="line">            <span class="built_in">memcpy</span>(&amp;h,cp,<span class="keyword">sizeof</span>(h));</span><br><span class="line">            <span class="keyword">if</span> (h-&gt;iskey || (!h-&gt;iscompr &amp;&amp; h-&gt;size != <span class="number">1</span>)) <span class="keyword">break</span>;</span><br><span class="line">            <span class="comment">/* 判断节点中size是否超出最大限制 */</span></span><br><span class="line">            <span class="keyword">if</span> (comprsize + h-&gt;size &gt; RAX_NODE_MAX_SIZE) <span class="keyword">break</span>;</span><br><span class="line">            nodes++;</span><br><span class="line">            comprsize += h-&gt;size;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (nodes &gt; <span class="number">1</span>) &#123;</span><br><span class="line">            <span class="comment">/* 如果可以压缩收敛，则创建新的节点进行合并 */</span></span><br><span class="line">            <span class="keyword">size_t</span> nodesize =</span><br><span class="line">                <span class="keyword">sizeof</span>(raxNode)+comprsize+raxPadding(comprsize)+<span class="keyword">sizeof</span>(raxNode*);</span><br><span class="line">            raxNode *<span class="keyword">new</span> = rax_malloc(nodesize);</span><br><span class="line">            <span class="comment">/* An out of memory here just means we cannot optimize this</span></span><br><span class="line"><span class="comment">             * node, but the tree is left in a consistent state. */</span></span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">new</span> == <span class="literal">NULL</span>) &#123;</span><br><span class="line">                raxStackFree(&amp;ts);</span><br><span class="line">                <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">new</span>-&gt;iskey = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">new</span>-&gt;isnull = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">new</span>-&gt;iscompr = <span class="number">1</span>;</span><br><span class="line">            <span class="keyword">new</span>-&gt;size = comprsize;</span><br><span class="line">            rax-&gt;numnodes++;</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* 再次扫描，以进行新节点的内容填充并修复新节点指针，同时释放所有不再使用的节点 */</span></span><br><span class="line">            comprsize = <span class="number">0</span>;</span><br><span class="line">            h = start;</span><br><span class="line">            <span class="keyword">while</span>(h-&gt;size != <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="built_in">memcpy</span>(<span class="keyword">new</span>-&gt;data+comprsize,h-&gt;data,h-&gt;size);</span><br><span class="line">                comprsize += h-&gt;size;</span><br><span class="line">                raxNode **cp = raxNodeLastChildPtr(h);</span><br><span class="line">                raxNode *tofree = h;</span><br><span class="line">                <span class="built_in">memcpy</span>(&amp;h,cp,<span class="keyword">sizeof</span>(h));</span><br><span class="line">                rax_free(tofree); rax-&gt;numnodes--;</span><br><span class="line">                <span class="keyword">if</span> (h-&gt;iskey || (!h-&gt;iscompr &amp;&amp; h-&gt;size != <span class="number">1</span>)) <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            debugnode(<span class="string">&quot;New node&quot;</span>,<span class="keyword">new</span>);</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* 此时h指向的是不参与压缩的节点，将新节点的指针指向它 */</span></span><br><span class="line">            raxNode **cp = raxNodeLastChildPtr(<span class="keyword">new</span>);</span><br><span class="line">            <span class="built_in">memcpy</span>(cp,&amp;h,<span class="keyword">sizeof</span>(h));</span><br><span class="line"></span><br><span class="line">            <span class="comment">/* 父节点指针重新链接到新节点上 */</span></span><br><span class="line">            <span class="keyword">if</span> (parent) &#123;</span><br><span class="line">                raxNode **parentlink = raxFindParentLink(parent,start);</span><br><span class="line">                <span class="built_in">memcpy</span>(parentlink,&amp;<span class="keyword">new</span>,<span class="keyword">sizeof</span>(<span class="keyword">new</span>));</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                rax-&gt;head = <span class="keyword">new</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            debugf(<span class="string">&quot;Compressed %d nodes, %d total bytes\n&quot;</span>,</span><br><span class="line">                nodes, (<span class="keyword">int</span>)comprsize);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    raxStackFree(&amp;ts);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function">raxNode *<span class="title">raxRemoveChild</span><span class="params">(raxNode *parent, raxNode *child)</span> </span>&#123;</span><br><span class="line">    debugnode(<span class="string">&quot;raxRemoveChild before&quot;</span>, parent);</span><br><span class="line">    <span class="comment">/* 如果父节点是一个压缩节点（即只有一个子节点），那么删除子节点就意味着将其变成一个没有子节点的普通节点 */</span></span><br><span class="line">    <span class="keyword">if</span> (parent-&gt;iscompr) &#123;</span><br><span class="line">        <span class="keyword">void</span> *data = <span class="literal">NULL</span>;</span><br><span class="line">        <span class="keyword">if</span> (parent-&gt;iskey) data = raxGetData(parent);</span><br><span class="line">        parent-&gt;isnull = <span class="number">0</span>;</span><br><span class="line">        parent-&gt;iscompr = <span class="number">0</span>;</span><br><span class="line">        parent-&gt;size = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">if</span> (parent-&gt;iskey) raxSetData(parent,data);</span><br><span class="line">        debugnode(<span class="string">&quot;raxRemoveChild after&quot;</span>, parent);</span><br><span class="line">        <span class="keyword">return</span> parent;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Otherwise we need to scan for the child pointer and memmove()</span></span><br><span class="line"><span class="comment">     * accordingly.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * 1. To start we seek the first element in both the children</span></span><br><span class="line"><span class="comment">     *    pointers and edge bytes in the node. */</span></span><br><span class="line">    raxNode **cp = raxNodeFirstChildPtr(parent);</span><br><span class="line">    raxNode **c = cp;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *e = parent-&gt;data;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 2. 确定子节点的指针 */</span></span><br><span class="line">    <span class="keyword">while</span>(<span class="number">1</span>) &#123;</span><br><span class="line">        raxNode *aux;</span><br><span class="line">        <span class="built_in">memcpy</span>(&amp;aux,c,<span class="keyword">sizeof</span>(aux));</span><br><span class="line">        <span class="keyword">if</span> (aux == child) <span class="keyword">break</span>;</span><br><span class="line">        c++;</span><br><span class="line">        e++;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 3. 删除节点上的数据，和相应的子节点指针 */</span></span><br><span class="line">    <span class="keyword">int</span> taillen = parent-&gt;size - (e - parent-&gt;data) - <span class="number">1</span>;</span><br><span class="line">    debugf(<span class="string">&quot;raxRemoveChild tail len: %d\n&quot;</span>, taillen);</span><br><span class="line">    memmove(e,e+<span class="number">1</span>,taillen);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 因为删除一个节点，需要删除父节点上关于子节点的data信息和指针信息，所以需要计算父节点上的偏移量，即节点上的数据向左偏移的字节数 */</span></span><br><span class="line">    <span class="keyword">size_t</span> shift = ((parent-&gt;size+<span class="number">4</span>) % <span class="keyword">sizeof</span>(<span class="keyword">void</span>*)) == <span class="number">1</span> ? <span class="keyword">sizeof</span>(<span class="keyword">void</span>*) : <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 在删除之前移动子指针 */</span></span><br><span class="line">    <span class="keyword">if</span> (shift)</span><br><span class="line">        memmove(((<span class="keyword">char</span>*)cp)-shift,cp,(parent-&gt;size-taillen<span class="number">-1</span>)*<span class="keyword">sizeof</span>(raxNode**));</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 将剩余的尾部指针移动到指定位置 */</span></span><br><span class="line">    <span class="keyword">size_t</span> valuelen = (parent-&gt;iskey &amp;&amp; !parent-&gt;isnull) ? <span class="keyword">sizeof</span>(<span class="keyword">void</span>*) : <span class="number">0</span>;</span><br><span class="line">    memmove(((<span class="keyword">char</span>*)c)-shift,c+<span class="number">1</span>,taillen*<span class="keyword">sizeof</span>(raxNode**)+valuelen);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 4. 更新节点size. */</span></span><br><span class="line">    parent-&gt;size--;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 重新分配父节点的空间 */</span></span><br><span class="line">    raxNode *newnode = rax_realloc(parent,raxNodeCurrentLength(parent));</span><br><span class="line">    <span class="keyword">if</span> (newnode) &#123;</span><br><span class="line">        debugnode(<span class="string">&quot;raxRemoveChild after&quot;</span>, newnode);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Note: if rax_realloc() fails we just return the old address, which</span></span><br><span class="line"><span class="comment">     * is valid. */</span></span><br><span class="line">    <span class="keyword">return</span> newnode ? newnode : parent;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>李辉雄
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="http://example.com/Redis/1-data-structure/redis-parse-rax/" title="Redis源码-基数树rax">http://example.com/Redis/1-data-structure/redis-parse-rax/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"># Redis</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/Redis/1-data-structure/redis-parse-listpack/" rel="prev" title="Redis源码-紧凑列表listpack">
+      <i class="fa fa-chevron-left"></i> Redis源码-紧凑列表listpack
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/Redis/1-data-structure/redis-parse-hyperloglog/" rel="next" title="Redis源码-基数统计hyperloglog">
+      Redis源码-基数统计hyperloglog <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93%E4%B8%8E%E5%AE%8F%E5%AE%9A%E4%B9%89"><span class="nav-number">1.</span> <span class="nav-text">结构体与宏定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%8A%9F%E8%83%BD%E6%80%BB%E8%A7%88"><span class="nav-number">2.</span> <span class="nav-text">函数功能总览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">主要函数实现</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="李辉雄"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">李辉雄</p>
+  <div class="site-description" itemprop="description">C++、Go、Python、shell、Redis、Mysql</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">25</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">李辉雄</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="/lib/canvas-ribbon/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '83e621afbb975e7ae373',
+      clientSecret: '51509442793886cbca7c0d7508b24c3ae0e38d28',
+      repo        : 'blog_comments',
+      owner       : 'Grizzly1127',
+      admin       : ['Grizzly1127'],
+      id          : 'fe5fceac1357d088e9d911275f539535',
+        language: 'zh-CN',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+<script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(e.href.match(t)||e.href.match(r))&&(e.href=a.dataset.original)})});</script><script>!function(n){n.imageLazyLoadSetting.processImages=o;var i=n.imageLazyLoadSetting.isSPA,r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]"));function o(){i&&(r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")));for(var t,e,a=0;a<r.length;a++)t=r[a],e=void 0,0<=(e=t.getBoundingClientRect()).bottom&&0<=e.left&&e.top<=(n.innerHeight||document.documentElement.clientHeight)&&function(){var t,e,n,i,o=r[a];t=o,e=function(){r=r.filter(function(t){return o!==t})},n=new Image,i=t.getAttribute("data-original"),n.onload=function(){t.src=i,e&&e()},n.src=i}()}o(),n.addEventListener("scroll",function(){var t,e;t=o,e=n,clearTimeout(t.tId),t.tId=setTimeout(function(){t.call(e)},500)})}(this);</script></body>
+</html>

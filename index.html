@@ -145,7 +145,7 @@
   </li>
         <li class="menu-item menu-item-archives">
 
-    <a href="/archives/" rel="section"><i class=" fa-fw"></i>归档</a>
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
 
   </li>
       <li class="menu-item menu-item-search">
@@ -205,7 +205,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/second-stage/redis-parse-string/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/4-net/redis-parse-networking/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -219,7 +219,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/second-stage/redis-parse-string/" class="post-title-link" itemprop="url">Redis源码-字符串对象string</a>
+            <a href="/Redis/4-net/redis-parse-networking/" class="post-title-link" itemprop="url">Redis源码-网络通信</a>
         </h2>
 
         <div class="post-meta">
@@ -230,7 +230,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-22 10:31:50 / 修改时间：10:33:15" itemprop="dateCreated datePublished" datetime="2020-09-22T10:31:50+08:00">2020-09-22</time>
+              <time title="创建时间：2020-09-22 11:21:08 / 修改时间：11:30:51" itemprop="dateCreated datePublished" datetime="2020-09-22T11:21:08+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -242,7 +242,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/second-stage/" itemprop="url" rel="index"><span itemprop="name">second-stage</span></a>
+                  <a href="/categories/Redis/4-net/" itemprop="url" rel="index"><span itemprop="name">4-net</span></a>
                 </span>
             </span>
 
@@ -257,12 +257,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：t_string.c/server.h</p>
-<p>字符串是redis中最常用的数据结构，在对象系统object一文中我们提到，字符串数据结构根据场景会有三种编码类型：<code>OBJ_ENCODING_RAW</code>、<code>OBJ_ENCODING_INT</code>、<code>OBJ_ENCODING_EMBSTR</code>，分别对应底层数据结构：sds、int、sds。下面说说这三种编码类型的使用场景。<br></p>
+          <p>源码位置：anet.c/anet.h/networking.c</p>
+<p><strong>1. 简介</strong><br>Redis在<code>anet.c</code>中对TCP/IP网络中socket api接口和状态设置进行了封装。状态设置主要包括socket连接的阻塞性、tcp的保活定时器的设置、设置发送缓冲区、tcp的nagle算法设置、设置发送/接收超时时间、地址重用的设置和IPv6/IPv4的设置等。<br>Redis网络通讯的具体实现在<code>networking.c</code>中，主要包括如何建立和客户端的连接，并且接收其命令，返回给客户端。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/second-stage/redis-parse-string/#more" rel="contents">
+              <a class="btn" href="/Redis/4-net/redis-parse-networking/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -286,7 +285,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/second-stage/redis-parse-object/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/4-net/redis-parse-event/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -300,7 +299,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/second-stage/redis-parse-object/" class="post-title-link" itemprop="url">Redis源码-对象系统object</a>
+            <a href="/Redis/4-net/redis-parse-event/" class="post-title-link" itemprop="url">Redis源码-事件驱动</a>
         </h2>
 
         <div class="post-meta">
@@ -311,7 +310,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:23:23 / 修改时间：17:52:40" itemprop="dateCreated datePublished" datetime="2020-09-21T17:23:23+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:19:42 / 修改时间：11:32:09" itemprop="dateCreated datePublished" datetime="2020-09-22T11:19:42+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -323,7 +322,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/second-stage/" itemprop="url" rel="index"><span itemprop="name">second-stage</span></a>
+                  <a href="/categories/Redis/4-net/" itemprop="url" rel="index"><span itemprop="name">4-net</span></a>
                 </span>
             </span>
 
@@ -338,12 +337,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：object.c/server.h</p>
-<p>在之前的文章中，我们介绍了redis底层的数据结构，比如简单动态字符串，双端链表，跳跃表，字典，整数集合，压缩列表，快速列表，基数树，紧凑列表等。<br></p>
+          <p>源码位置：ae.c/ae.h/ae_evport.c/ae_epoll.c/ae_kqueue.c/ae_select.c</p>
+<p><strong>1. 简介</strong><br>Redis 是一个事件驱动的内存数据库，服务器需要处理两种类型的事件：</p>
+<ul>
+<li>文本（IO）事件<code>AE_FILE_EVENTS</code></li>
+<li>时间事件<code>AE_TIME_EVENTS</code></li>
+</ul>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/second-stage/redis-parse-object/#more" rel="contents">
+              <a class="btn" href="/Redis/4-net/redis-parse-event/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -367,7 +369,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-hyperloglog/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/3-database/redis-parse-multi/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -381,7 +383,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-hyperloglog/" class="post-title-link" itemprop="url">Redis源码-基数统计hyperloglog</a>
+            <a href="/Redis/3-database/redis-parse-multi/" class="post-title-link" itemprop="url">Redis源码-事务</a>
         </h2>
 
         <div class="post-meta">
@@ -392,7 +394,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:19:20 / 修改时间：17:52:29" itemprop="dateCreated datePublished" datetime="2020-09-21T17:19:20+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:17:54 / 修改时间：11:30:45" itemprop="dateCreated datePublished" datetime="2020-09-22T11:17:54+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -404,7 +406,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/3-database/" itemprop="url" rel="index"><span itemprop="name">3-database</span></a>
                 </span>
             </span>
 
@@ -419,12 +421,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：hyperloglog.c  </p>
-<p>hyperloglog是一种算法，它提供了不精确的去重计数方案。redis的hyperloglog内部维护了16384个桶来记录各自桶的元素数量，当一个元素到来时，它会散列到其中一个桶，以一定的概率影响到这个桶的计数值。因为是概率算法，所以单个桶的计数值并不准确，但是将所有桶的计数值进行调合均值累加起来后，结果就会非常接近真实的计数值。<br></p>
+          <p>源码位置：multi.c/redis.h</p>
+<p><strong>1. 简介</strong><br>Redis 事务的本质是一组命令的集合。事务支持一次执行多个命令，一个事务中所有命令都会被序列化。在事务执行过程，会按照顺序串行化执行队列中的命令，其他客户端提交的命令请求不会插入到事务执行命令序列中。<br>总结说：redis事务就是一次性、顺序性、排他性的执行一个队列中的一系列命令。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-hyperloglog/#more" rel="contents">
+              <a class="btn" href="/Redis/3-database/redis-parse-multi/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -448,7 +449,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-rax/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/3-database/redis-parse-pubsub/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -462,7 +463,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-rax/" class="post-title-link" itemprop="url">Redis源码-基数树rax</a>
+            <a href="/Redis/3-database/redis-parse-pubsub/" class="post-title-link" itemprop="url">Redis源码-发布和订阅</a>
         </h2>
 
         <div class="post-meta">
@@ -473,7 +474,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:09:04 / 修改时间：17:52:47" itemprop="dateCreated datePublished" datetime="2020-09-21T17:09:04+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:16:19 / 修改时间：11:31:11" itemprop="dateCreated datePublished" datetime="2020-09-22T11:16:19+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -485,7 +486,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/3-database/" itemprop="url" rel="index"><span itemprop="name">3-database</span></a>
                 </span>
             </span>
 
@@ -500,12 +501,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：rax.c/rax.h</p>
-<p>Redis 5.0版本引入的一个新的数据结构。目前主要用在stream这个数据结构上。Rax是一个有序字典树（基数树），按照key的字典序排列，支持快速定位、查找和删除操作。<br></p>
+          <p>源码位置：pubsub.c/redis.h</p>
+<p><strong>1. 前言</strong><br>Redis发布订阅(pub/sub)是一种消息通信模式，由三部分组成：发布者(pub)，频道(channel)，订阅者(sub)。具体结构如下：</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-rax/#more" rel="contents">
+              <a class="btn" href="/Redis/3-database/redis-parse-pubsub/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -529,7 +529,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-listpack/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/3-database/redis-parse-aof/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -543,7 +543,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-listpack/" class="post-title-link" itemprop="url">Redis源码-紧凑列表listpack</a>
+            <a href="/Redis/3-database/redis-parse-aof/" class="post-title-link" itemprop="url">Redis源码-AOF持久化</a>
         </h2>
 
         <div class="post-meta">
@@ -554,7 +554,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:08:58 / 修改时间：17:52:35" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:58+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:14:40 / 修改时间：11:30:15" itemprop="dateCreated datePublished" datetime="2020-09-22T11:14:40+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -566,7 +566,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/3-database/" itemprop="url" rel="index"><span itemprop="name">3-database</span></a>
                 </span>
             </span>
 
@@ -581,13 +581,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：listpack.c/listpack.h</p>
-<p>Redis 5.0版本引入的一个新的数据结构，它是对ziplist压缩列表的改进，listpack结构更为精简，更加节省内存空间。它的实现方式也和ziplist很类似，所以阅读理解起来并不难。也许该数据结构设计出来是要替代ziplist的，只不过ziplist目前在redis中的应用非常广泛，替换起来复杂度很高，所以目前该数据结构只有在新引入的stream数据结构中使用，可能将来有一天会全面替换ziplist。  </p>
-<p>相对于ziplist，listpack取消了存储前置节点长度的字段，listpack的节点之间是相互独立的，改变前置节点的长度，不会影响到后续节点的长度，所以再也不需要连锁更新操作。<br></p>
+          <p>源码位置：aof.c/rio.c/rio.h</p>
+<p><strong>1. 前言</strong><br>除了RDB持久化功能以外，Redis还提供了AOF(Append Only File)持久化功能。与RDB持久化通过保存数据库中的键值对来记录数据库状态不同，AOF持久化是通过保存Redis所执行的写命令来记录数据库状态的。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-listpack/#more" rel="contents">
+              <a class="btn" href="/Redis/3-database/redis-parse-aof/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -611,7 +609,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-quicklist/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/3-database/redis-parse-rdb/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -625,7 +623,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-quicklist/" class="post-title-link" itemprop="url">Redis源码-快速列表quicklist</a>
+            <a href="/Redis/3-database/redis-parse-rdb/" class="post-title-link" itemprop="url">Redis源码-RDB持久化</a>
         </h2>
 
         <div class="post-meta">
@@ -636,7 +634,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:08:53 / 修改时间：17:52:42" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:53+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:12:52 / 修改时间：11:31:24" itemprop="dateCreated datePublished" datetime="2020-09-22T11:12:52+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -648,7 +646,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/3-database/" itemprop="url" rel="index"><span itemprop="name">3-database</span></a>
                 </span>
             </span>
 
@@ -663,12 +661,12 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：quicklist.c/quicklist.h</p>
-<p>Redis3.2版本以前的列表底层的编码是ziplist和linkedlist(adlist.c)实现的，3.2版本后引入了quicklist的数据结构，列表底层都由quicklist来实现。本质上，quicklist是由ziplist和linkedlist结合而成。所以，学习quicklist之前，需要明白<a href="../redis-parse-zskiplist">ziplist</a>的原理。<br></p>
+          <p>源码位置：rdb.c/rdb.h/rio.c/rio.h</p>
+<p><strong>1. 前言</strong><br>Redis是内存数据库，所有的数据都是存在内存中，这样就会存在一个问题，就是当服务进程退出，所有数据都将会丢失，所以Redis提供了两种数据持久化的机制，分别是RDB(Redis DataBase)和AOF(Append Only File)。这两种机制的区别将在后面介绍AOF持久化中介绍。  </p>
+<p>RDB其实就是把数据以快照的形式保存在磁盘上。什么是快照呢，你可以理解成把当前时刻的数据拍成一张照片保存下来。<br>RDB持久化是指在指定的时间间隔内将内存中的数据集快照写入磁盘。也是默认的持久化方式，这种方式是就是将内存中数据以快照的方式写入到二进制文件中，默认的文件名为<code>dump.rdb</code>。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-quicklist/#more" rel="contents">
+              <a class="btn" href="/Redis/3-database/redis-parse-rdb/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -692,7 +690,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-ziplist/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/3-database/redis-parse-notify/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -706,7 +704,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-ziplist/" class="post-title-link" itemprop="url">Redis源码-压缩列表ziplist</a>
+            <a href="/Redis/3-database/redis-parse-notify/" class="post-title-link" itemprop="url">Redis源码-通知功能notify</a>
         </h2>
 
         <div class="post-meta">
@@ -717,7 +715,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:08:45 / 修改时间：17:52:51" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:45+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:11:26 / 修改时间：11:32:46" itemprop="dateCreated datePublished" datetime="2020-09-22T11:11:26+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -729,7 +727,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/3-database/" itemprop="url" rel="index"><span itemprop="name">3-database</span></a>
                 </span>
             </span>
 
@@ -744,12 +742,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：ziplist.c/ziplist.h</p>
-<p>ziplist在redis中主要用于Hash与List数据结构的底层实现之一，ziplist没有定义专门的结构体，其在内存块中的表示如下图所示：<br></p>
+          <p>源码位置：notify.c/server.h</p>
+<p><strong>1. 事件通知概述</strong><br>对于Redis服务器，它可以通过订阅发布功能来发送服务器中的键空间事件。所谓的键空间事件，就是数据库中键的增加、修改和删除等操作，用于告知收听该类事件的客户端当前数据库中执行了哪些操作。客户端可以通过 订阅与发布功能（pub/sub）功能，来接收那些以某种方式改动了Redis数据集的事件。<br>目前Redis的订阅与发布功能采用的是发送即忘（fire and forget）的策略，当订阅事件的客户端断线时，它会丢失所有在断线期间分发给它的事件。<br>订阅与发布功能（pub/sub）功能实现在pubsub.c中，后续会在博文中讲到。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-ziplist/#more" rel="contents">
+              <a class="btn" href="/Redis/3-database/redis-parse-notify/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -773,7 +770,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-intset/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/3-database/redis-parse-db/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -787,7 +784,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-intset/" class="post-title-link" itemprop="url">Redis源码-整数集合intset</a>
+            <a href="/Redis/3-database/redis-parse-db/" class="post-title-link" itemprop="url">Redis源码-数据库的实现</a>
         </h2>
 
         <div class="post-meta">
@@ -798,7 +795,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:08:38 / 修改时间：17:52:32" itemprop="dateCreated datePublished" datetime="2020-09-21T17:08:38+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:09:36 / 修改时间：11:30:13" itemprop="dateCreated datePublished" datetime="2020-09-22T11:09:36+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -810,7 +807,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/3-database/" itemprop="url" rel="index"><span itemprop="name">3-database</span></a>
                 </span>
             </span>
 
@@ -825,12 +822,12 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：intset.c/intset.h  </p>
-<p>intset用来实现redis的set对象的数据结构之一（当元素较少且为数字类型时）。<br>为了节省内存的使用，创建intset的时候，使用最小的int类型（int16_t），当插入的整数大于int16_t时，将会进行对应的字节提升（int32_t或者int64_t），这种提升是不可逆的。<br></p>
+          <p>源码位置：db.c/server.h</p>
+<p><strong>1. Redis数据库介绍：</strong><br>在前两个阶段中，我们学习了redis数据结构的实现，而这些数据结构都是为了实现数据库功能做的铺垫，下面，让我们一起来看看redis数据库是如何实现的吧。  </p>
+<p>Redis服务器在运行的时候会创建大量的redisObject对象，这些对象都是存在redisDb中的，为了快速索引到某个对象，redisDb采用了dict字典结构设计。<br>启动Redis后，Redis服务器将所有数据库都保存在redisServer结构的db数组中，db数组的每一项都是一个redisDb结构，代表一个数据库。根据配置参数，redis服务器在初始化的时候，默认情况下会创建16个数据库，由dbnum决定(可通过<code>databases</code>配置修改)，每个数据库都是独立的。<br>客户端可以通过<code>select</code>命令来切换数据库，如<code>select 1</code>会切换到数据库号为 1 的数据库，select是通过修改客户端的db指针，指针指向不同的数据库来实现数据库的切换操作的。  </p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-intset/#more" rel="contents">
+              <a class="btn" href="/Redis/3-database/redis-parse-db/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -854,7 +851,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-zskiplist/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/2-object/redis-parse-zset/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -868,7 +865,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-zskiplist/" class="post-title-link" itemprop="url">Redis源码-跳跃表zskiplist</a>
+            <a href="/Redis/2-object/redis-parse-zset/" class="post-title-link" itemprop="url">Redis源码-有序集合对象zset</a>
         </h2>
 
         <div class="post-meta">
@@ -879,7 +876,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:03:25 / 修改时间：17:52:56" itemprop="dateCreated datePublished" datetime="2020-09-21T17:03:25+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 11:07:53 / 修改时间：11:31:47" itemprop="dateCreated datePublished" datetime="2020-09-22T11:07:53+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -891,7 +888,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/2-object/" itemprop="url" rel="index"><span itemprop="name">2-object</span></a>
                 </span>
             </span>
 
@@ -906,12 +903,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：t_zset.c/server.h</p>
-<p>跳跃表是zset有序集合的底层实现之一。<br></p>
+          <p>源码位置：t_zset.c/server.h</p>
+<p>zset对象底层编码方式有两种，<code>ziplist</code>或<code>skiplist</code>。<br>使用ziplist编码需要同时满足以下两个条件：  </p>
+<ul>
+<li>有序集合对象中所有元素的大小都小于64字节。（可通过redis.conf配置：zset_max_ziplist_value）</li>
+<li>有序集合对象保存的元素个数不超过128个。（可通过redis.conf配置：zset_max_ziplist_entries）</li>
+</ul>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-zskiplist/#more" rel="contents">
+              <a class="btn" href="/Redis/2-object/redis-parse-zset/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -935,7 +935,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/first-stage/redis-parse-dict/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/Redis/2-object/redis-parse-set/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -949,7 +949,7 @@
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
           
-            <a href="/Redis/first-stage/redis-parse-dict/" class="post-title-link" itemprop="url">Redis源码-字典dict</a>
+            <a href="/Redis/2-object/redis-parse-set/" class="post-title-link" itemprop="url">Redis源码-集合对象set</a>
         </h2>
 
         <div class="post-meta">
@@ -960,7 +960,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-21 17:00:45 / 修改时间：17:52:27" itemprop="dateCreated datePublished" datetime="2020-09-21T17:00:45+08:00">2020-09-21</time>
+              <time title="创建时间：2020-09-22 10:58:05 / 修改时间：11:31:33" itemprop="dateCreated datePublished" datetime="2020-09-22T10:58:05+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -972,7 +972,7 @@
                 </span>
                   ，
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Redis/first-stage/" itemprop="url" rel="index"><span itemprop="name">first-stage</span></a>
+                  <a href="/categories/Redis/2-object/" itemprop="url" rel="index"><span itemprop="name">2-object</span></a>
                 </span>
             </span>
 
@@ -987,12 +987,15 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><hr>
-<p>源码位置：dict.c/dict.h  </p>
-<p>Redis的字典是由两个HashTable（后面简称ht[0]、ht[1]）构成，与其他字典不同的是，当当前的hashtable负载过高时，redis的字典会进行rehash（重新计算hash），rehash的过程是渐进式的，并不会一下子把所有的数据转移到另一张hashtable中，否则那样会造成服务短暂时间内无法使用。<br></p>
+          <p>源码位置：t_set.c/server.h</p>
+<p>set对象底层编码方式有两种，<code>intset</code>或<code>hashtable</code>。<br>使用intset编码的条件：  </p>
+<ul>
+<li>集合对象中所有元素都是整数值。</li>
+<li>集合对象保存的元素个数不超过512个。（可通过redis.conf配置：set_max_intset_entries）</li>
+</ul>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/Redis/first-stage/redis-parse-dict/#more" rel="contents">
+              <a class="btn" href="/Redis/2-object/redis-parse-set/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -1015,7 +1018,7 @@
 
   
   <nav class="pagination">
-    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -1083,14 +1086,14 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-count">25</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
@@ -1220,8 +1223,6 @@ window.addEventListener('pjax:success', () => {
 </script>
 
 
-  <script defer src="/lib/three/three.min.js"></script>
-    <script defer src="/lib/three/three-waves.min.js"></script>
 
 
   
