@@ -1693,6 +1693,109 @@
       </tags>
   </entry>
   <entry>
+    <title>CentOS7 vim个人配置</title>
+    <url>/vim/vim-configuration/</url>
+    <content><![CDATA[<p>因为最终想要安装YCM插件，而最新的YCM插件只支持 python3.6 和 vim8.1 以上的版本，所以需要更新系统自带的 python 和 vim（如果以安装最新的环境，则可忽略）。<br><a id="more"></a></p>
+<h2 id="安装python3"><a href="#安装python3" class="headerlink" title="安装python3"></a>安装python3</h2><p>安装相关编译环境：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gcc make</span><br></pre></td></tr></table></figure>
+<p>下载 python 安装包，此处我下载的是 3.7.4 版本的 python，可自行选择最新的版本下载安装：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">mkdir ~/download</span><br><span class="line">cd ~/download</span><br><span class="line">wget https://www.python.org/ftp/python/3.7.4/Python-3.7.4.tgz</span><br></pre></td></tr></table></figure>
+<p>解压：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">tar -vxzf Python-3.7.4.tgz</span><br></pre></td></tr></table></figure>
+<p>编译安装：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">cd Python-3.7.4</span><br><span class="line"></span><br><span class="line">./configure --prefix=/usr/local/python3 --with-ssl --enable-shared --enable-optimizations</span><br><span class="line"></span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+<p>此处的添加 —enable-shared 参数是因为YCM插件需要。<br>安装完毕后，添加软链接：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">ln -sf /usr/local/python3/bin/python3 /usr/bin/python3</span><br><span class="line">ln -sf /usr/local/python3/bin/pip3 /usr/bin/pip3</span><br></pre></td></tr></table></figure>
+<p>执行命令验证 python 版本：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">python --version</span><br><span class="line">Python 2.7.12</span><br><span class="line"></span><br><span class="line">python3 --version</span><br><span class="line">Python 3.7.4</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="安装vim8"><a href="#安装vim8" class="headerlink" title="安装vim8"></a>安装vim8</h2><p>下载vim：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">cd ~/download</span><br><span class="line">git clone https://github.com/vim/vim.git</span><br></pre></td></tr></table></figure>
+<p>编译安装支持 python3 的 vim8：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">cd vim</span><br><span class="line"></span><br><span class="line">./configure \</span><br><span class="line">--with-features=huge \</span><br><span class="line">--enable-multibyte \</span><br><span class="line">--enable-rubyinterp=yes \</span><br><span class="line">--enable-python3interp=yes \</span><br><span class="line">--with-python-config-dir=/usr/local/python3/lib/python3.7/config-3.7m-x86_64-linux-gnu \</span><br><span class="line">--enable-perlinterp=yes \</span><br><span class="line">--enable-luainterp=yes \</span><br><span class="line">--enable-gui=gtk2 \</span><br><span class="line">--enable-cscope \</span><br><span class="line">--prefix=/usr/local/vim8</span><br><span class="line"></span><br><span class="line">make &amp;&amp; make install</span><br></pre></td></tr></table></figure>
+<p>安装完毕后，添加软链接：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">ln -sf /usr/local/vim8/bin/vim /usr/bin/vim # 覆盖旧版本的vim</span><br></pre></td></tr></table></figure>
+<p>验证vim：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">vim --version</span><br></pre></td></tr></table></figure>
+<p>查看结果：<br><img src="/vim/vim-configuration/vim-version.png" alt="vim-version"></p>
+<p>如果红框中 python3 前面显示 <code>+</code> ，则表示 vim 成功支持 python3。<br>至此以安装完毕python3 + vim8。<br>接下来对 vim 进行相关配置。</p>
+<h2 id="vim配置"><a href="#vim配置" class="headerlink" title="vim配置"></a>vim配置</h2><h3 id="vim基础配置"><a href="#vim基础配置" class="headerlink" title="vim基础配置"></a>vim基础配置</h3><p>首先对 vim 进行一个基础配置</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">set number          &quot; 显示行号</span><br><span class="line">syntax on           &quot; 语法高亮</span><br><span class="line">set showcmd         &quot; 输入的命令显示出来，看的清楚些</span><br><span class="line">set cursorline      &quot; 当前行显示</span><br><span class="line">set autoindent      &quot; 自动缩进</span><br><span class="line">set cindent</span><br><span class="line">set tabstop=4       &quot; tab缩进4个空格</span><br><span class="line">set softtabstop=4</span><br><span class="line">set shiftwidth=4</span><br><span class="line">set expandtab</span><br><span class="line">set incsearch       &quot; 开启实时搜索功能</span><br><span class="line">set ignorecase      &quot; 搜索时大小写不敏感</span><br><span class="line">set hlsearch        &quot; 高亮显示搜索结果</span><br><span class="line">set foldenable      &quot; 允许折叠</span><br><span class="line">set foldmethod=manual   &quot; 手动折叠</span><br><span class="line">set nocompatible    &quot; 去掉讨厌的有关vi一致性模式，避免以前版本的一些bug和局限</span><br><span class="line">set clipboard+=unnamed  &quot; 共享剪贴板</span><br><span class="line">set autowrite       &quot; 自动保存</span><br><span class="line">set confirm         &quot; 在处理未保存或只读文件的时候，弹出确认</span><br><span class="line">set ruler           &quot; 打开状态栏标尺</span><br><span class="line">set langmenu=zh_CN.UTF-8    &quot; 语言设置</span><br><span class="line">set helplang=cn</span><br><span class="line">set laststatus=2    &quot; 总是显示状态行</span><br><span class="line">set linespace=0     &quot; 字符间插入的像素行数目</span><br><span class="line">set backspace=2     &quot; 使回格键（backspace）正常处理indent, eol, start等</span><br><span class="line">set showmatch       &quot; 高亮显示匹配的括号</span><br><span class="line">set scrolloff=3     &quot; 光标移动到buffer的顶部和底部时保持3行距离</span><br><span class="line">set completeopt=menu</span><br><span class="line">&quot; 相关颜色替换</span><br><span class="line">hi Search term=standout cterm=bold ctermfg=7 ctermbg=1</span><br><span class="line">hi SpellBad term=reverse ctermfg=15 ctermbg=9 guifg=White guibg=Red</span><br><span class="line">let mapleader=&#x27;,&#x27;</span><br></pre></td></tr></table></figure>
+<h3 id="vim插件安装"><a href="#vim插件安装" class="headerlink" title="vim插件安装"></a>vim插件安装</h3><h4 id="安装vim插件管理器-vim-plug"><a href="#安装vim插件管理器-vim-plug" class="headerlink" title="安装vim插件管理器(vim-plug)"></a>安装vim插件管理器(vim-plug)</h4><p>因为需要安装的 vim 插件很多，所以需要有一个管理工具来对这些插件进行统一管理。目前主流使用的是 <a href="https://github.com/junegunn/vim-plug">vim-plug</a> 插件管理器，该插件能够异步并行进行快速安装、更新和卸载插件。</p>
+<p>下载 plug.vim 文件到 <code>~/.vim/autoload/</code> 文件夹中：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim</span><br></pre></td></tr></table></figure>
+<p>执行命令的时候，发现 raw.githubusercontent.com 地址可能访问不了，需要配置 hosts 才能进行访问，配置的方法网上很多，可自行查询解决。<br>下载完成后，在 vim 的配置文件( <code>~/.vimrc</code> )中添加以下代码：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">&quot; Specify a directory for plugins</span><br><span class="line">&quot; - For Neovim: stdpath(&#x27;data&#x27;) . &#x27;/plugged&#x27;</span><br><span class="line">&quot; - Avoid using standard Vim directory names like &#x27;plugin&#x27;</span><br><span class="line">call plug#begin(&#x27;~/.vim/plugged&#x27;)</span><br><span class="line">&quot; 以下添加需要安装的插件</span><br><span class="line">&quot; 可在github上查找需要安装的插件，以 Plug &#x27;xxx/xxx&#x27; 的形式来添加，如下：</span><br><span class="line"></span><br><span class="line">&quot; YCM插件</span><br><span class="line">Plug &#x27;Valloric/YouCompleteMe&#x27;</span><br><span class="line"></span><br><span class="line">&quot; Initialize plugin system</span><br><span class="line">call plug#end()</span><br></pre></td></tr></table></figure>
+<p>配置完成后，打开vim，输入<code>:PlugInstall</code>进行安装。</p>
+<p>vim-plug操作命令：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PlugInstall [name …] [#threads]</td>
+<td>安装插件</td>
+</tr>
+<tr>
+<td>PlugUpdate [name …] [#threads]</td>
+<td>更新插件</td>
+</tr>
+<tr>
+<td>PlugClean[!]</td>
+<td>卸载插件</td>
+</tr>
+<tr>
+<td>PlugUpgrade</td>
+<td>更新vim-plug</td>
+</tr>
+<tr>
+<td>PlugStatus</td>
+<td>查看插件状态</td>
+</tr>
+<tr>
+<td>PlugDiff</td>
+<td>审查插件</td>
+</tr>
+<tr>
+<td>PlugSnapshot[!] [output path]</td>
+<td>生成用于恢复插件当前快照的脚本</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>下面安装vim实用的插件。</p>
+<hr>
+<h4 id="NERDTree文件树目录"><a href="#NERDTree文件树目录" class="headerlink" title="NERDTree文件树目录"></a>NERDTree文件树目录</h4><p><a href="https://github.com/preservim/nerdtree">NERDTree</a>是一款可以提供树形目录的插件，方便浏览目录结构和进行文件跳转等。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;preservim/nerdtree&#x27;</span><br></pre></td></tr></table></figure>
+<p>相关配置如下：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">&quot; nerdtree</span><br><span class="line">autocmd vimenter * NERDTree  &quot;自动开启Nerdtree</span><br><span class="line">&quot; 关闭所有文本窗口时自动退出vim,否则需要两次退出才可</span><br><span class="line">autocmd BufEnter * if 0 == len(filter(range(1, winnr(&#x27;$&#x27;)), &#x27;empty(getbufvar(winbufnr(v:val), &quot;&amp;bt&quot;))&#x27;)) | qa! | endif</span><br><span class="line">let NERDTreeShowHidden=1    &quot; 是否显示隐藏文件</span><br><span class="line">let NERDTreeIgnore=[&#x27;\.pyc&#x27;,&#x27;\~$&#x27;,&#x27;\.swp&#x27;]  &quot; 忽略文件的显示</span><br><span class="line"></span><br><span class="line">&quot; 设置NerdTree 按f2打开或关闭NERDTree</span><br><span class="line">map &lt;F2&gt; :NERDTreeMirror&lt;CR&gt;</span><br><span class="line">map &lt;F2&gt; :NERDTreeToggle&lt;CR&gt;</span><br></pre></td></tr></table></figure>
+<h4 id="nerdtree-git-plugin目录树git文件状态"><a href="#nerdtree-git-plugin目录树git文件状态" class="headerlink" title="nerdtree-git-plugin目录树git文件状态"></a>nerdtree-git-plugin目录树git文件状态</h4><p><a href="https://github.com/Xuyuanp/nerdtree-git-plugin">nerdtree-git-plugin</a>能显示git管理的项目文件的变更状态。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;Xuyuanp/nerdtree-git-plugin&#x27;</span><br></pre></td></tr></table></figure>
+<p>相关配置如下：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">let g:NERDTreeIndicatorMapCustom = &#123;</span><br><span class="line">            \ &quot;Modified&quot;  : &quot;✹&quot;,</span><br><span class="line">            \ &quot;Staged&quot;    : &quot;✚&quot;,</span><br><span class="line">            \ &quot;Untracked&quot; : &quot;✭&quot;,</span><br><span class="line">            \ &quot;Renamed&quot;   : &quot;➜&quot;,</span><br><span class="line">            \ &quot;Unmerged&quot;  : &quot;═&quot;,</span><br><span class="line">            \ &quot;Deleted&quot;   : &quot;✖&quot;,</span><br><span class="line">            \ &quot;Dirty&quot;     : &quot;✗&quot;,</span><br><span class="line">            \ &quot;Clean&quot;     : &quot;✔︎&quot;,</span><br><span class="line">            \ &#x27;Ignored&#x27;   : &#x27;☒&#x27;,</span><br><span class="line">            \ &quot;Unknown&quot;   : &quot;?&quot;</span><br><span class="line">            \ &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="tagbar函数列表"><a href="#tagbar函数列表" class="headerlink" title="tagbar函数列表"></a>tagbar函数列表</h4><p><a href="https://github.com/preservim/tagbar">tagbar</a>能显示出所写代码的函数、变量、类等等。<br>安装 taglist 之前，需要先安装 ctags。<br>ctags 的功能：扫描指定的源文件，找出其中所包含的语法元素，并将找到的相关内容记录下来。<br>安装ctags：</p>
+<blockquote>
+<p>到 <a href="http://ctags.sourceforge.net/">http://ctags.sourceforge.net/</a> 下载最新的ctags源码(当前最新版本为 ctags-5.8.tar.gz)<br>解压并安装：<br>tar vxzf ctags-5.8.tar.gz<br>cd ctags-5.8<br>./configure &amp;&amp; make &amp;&amp; make install</p>
+</blockquote>
+<p>ctags的使用方法可以自行百度查询。</p>
+<p>接下来安装tagbar：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;preservim/tagbar&#x27;</span><br></pre></td></tr></table></figure>
+<p>相关配置如下：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">&quot; [tagbar]</span><br><span class="line">&quot; 设置tagbar使用的ctags的插件,必须要设置对</span><br><span class="line">let g:tagbar_ctags_bin=&#x27;/usr/bin/ctags&#x27;</span><br><span class="line">&quot; 设置tagbar的窗口宽度</span><br><span class="line">let g:tagbar_width=35</span><br><span class="line">&quot; 设置tagbar的窗口显示的位置,默认右边</span><br><span class="line">let g:tagbar_right=1</span><br><span class="line">&quot; 打开文件自动 打开tagbar</span><br><span class="line">&quot; autocmd BufReadPost *.cpp,*.c,*.h,*.hpp,*.cc,*.cxx call tagbar#autoopen()</span><br><span class="line">&quot; 这是tagbar一打开，光标即在tagbar页面内，默认在vim打开的文件内</span><br><span class="line">let g:tagbar_autofocus = 1</span><br><span class="line">&quot;设置标签不排序，默认排序</span><br><span class="line">let g:tagbar_sort = 0</span><br><span class="line">&quot; 映射tagbar的快捷键</span><br><span class="line">nnoremap &lt;silent&gt; &lt;F3&gt; :TagbarToggle&lt;CR&gt;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>vim</category>
+      </categories>
+      <tags>
+        <tag>vim</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>C++11新特性</title>
     <url>/c/cpp11-features/</url>
     <content><![CDATA[<h2 id="1-新功能"><a href="#1-新功能" class="headerlink" title="1. 新功能"></a>1. 新功能</h2><h3 id="1-1-新类型"><a href="#1-1-新类型" class="headerlink" title="1.1 新类型"></a>1.1 新类型</h3><p>新增类型 long long 和 unsigned long long，以支持64位（或更宽）的整型；新增类型 char16_t 和 char32_t，以支持16位和32位的字符表示。</p>
