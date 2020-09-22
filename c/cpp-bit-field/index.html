@@ -20,26 +20,22 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="1. 编译系统从源码文件到可执行程序是如何实现的呢？下面写个简单的程序来进行说明。以下是一个 hello.c 程序：">
+  <meta name="description" content="简介有些信息存储时，并不需要占用一整个完整的字节，而只需要占几个或一个二进制位。例如存放一个开关变量时，只需要用到0或1两种状态，用一位二进制位即可。所以，为了节省空间，C语言提供了一种叫位域的数据结构。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="c++ 编译与链接">
-<meta property="og:url" content="http://example.com/c-c/cpp-compilie-link/index.html">
+<meta property="og:title" content="结构体中的位域">
+<meta property="og:url" content="http://example.com/c/cpp-bit-field/index.html">
 <meta property="og:site_name" content="Grizzly">
-<meta property="og:description" content="1. 编译系统从源码文件到可执行程序是如何实现的呢？下面写个简单的程序来进行说明。以下是一个 hello.c 程序：">
+<meta property="og:description" content="简介有些信息存储时，并不需要占用一整个完整的字节，而只需要占几个或一个二进制位。例如存放一个开关变量时，只需要用到0或1两种状态，用一位二进制位即可。所以，为了节省空间，C语言提供了一种叫位域的数据结构。">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://qqadapt.qpic.cn/txdocpic/0/8a5e60d8034df3a7be257782321abbca/0">
-<meta property="og:image" content="https://qqadapt.qpic.cn/txdocpic/0/830e5f24d85ce1067c6bc9125e003bc9/0">
-<meta property="og:image" content="https://qqadapt.qpic.cn/txdocpic/0/4f8013511ac6fbf141ebdfe1a1d065aa/0">
-<meta property="article:published_time" content="2020-09-22T04:00:48.000Z">
-<meta property="article:modified_time" content="2020-09-22T07:02:29.836Z">
+<meta property="article:published_time" content="2020-09-22T06:28:39.000Z">
+<meta property="article:modified_time" content="2020-09-22T07:34:08.613Z">
 <meta property="article:author" content="李辉雄">
-<meta property="article:tag" content="c++">
-<meta property="article:tag" content="编译">
-<meta property="article:tag" content="链接">
+<meta property="article:tag" content="c">
+<meta property="article:tag" content="位域">
+<meta property="article:tag" content="bitfield">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://qqadapt.qpic.cn/txdocpic/0/8a5e60d8034df3a7be257782321abbca/0">
 
-<link rel="canonical" href="http://example.com/c-c/cpp-compilie-link/">
+<link rel="canonical" href="http://example.com/c/cpp-bit-field/">
 
 
 <script id="page-configurations">
@@ -52,7 +48,7 @@
   };
 </script>
 
-  <title>c++ 编译与链接 | Grizzly</title>
+  <title>结构体中的位域 | Grizzly</title>
   
 
 
@@ -151,9 +147,9 @@
     <a href="/categories/Redis" rel="section"><i class="snake fa-fw"></i>Redis</a>
 
   </li>
-        <li class="menu-item menu-item-cpp">
+        <li class="menu-item menu-item-c++">
 
-    <a href="/categories/cpp" rel="section"><i class="copyright fa-fw"></i>cpp</a>
+    <a href="/categories/c" rel="section"><i class="copyright fa-fw"></i>c++</a>
 
   </li>
         <li class="menu-item menu-item-archives">
@@ -219,7 +215,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/c-c/cpp-compilie-link/">
+    <link itemprop="mainEntityOfPage" href="http://example.com/c/cpp-bit-field/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpg">
@@ -232,7 +228,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          c++ 编译与链接
+          结构体中的位域
         </h1>
 
         <div class="post-meta">
@@ -243,7 +239,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-09-22 12:00:48 / 修改时间：15:02:29" itemprop="dateCreated datePublished" datetime="2020-09-22T12:00:48+08:00">2020-09-22</time>
+              <time title="创建时间：2020-09-22 14:28:39 / 修改时间：15:34:08" itemprop="dateCreated datePublished" datetime="2020-09-22T14:28:39+08:00">2020-09-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -251,7 +247,7 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/c-c/" itemprop="url" rel="index"><span itemprop="name">c/c++</span></a>
+                  <a href="/categories/c/" itemprop="url" rel="index"><span itemprop="name">c++</span></a>
                 </span>
             </span>
 
@@ -266,41 +262,43 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h2 id="1-编译系统"><a href="#1-编译系统" class="headerlink" title="1. 编译系统"></a>1. 编译系统</h2><p>从源码文件到可执行程序是如何实现的呢？下面写个简单的程序来进行说明。<br>以下是一个 hello.c 程序：</p>
-<a id="more"></a>
-<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello world!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在Linux系统上，由编译器把源文件转换为可执行文件的命令如下：</p>
-<blockquote>
-<p>gcc hello.c -o hello</p>
-</blockquote>
-<p>这是gcc编译器一步到位将源文件编译成了可执行文件，其中省略了的几个步骤，由gcc编译器自动执行。我们拆开来看，整个编译分为四个步骤：</p>
-<blockquote>
-<p>1-&gt; gcc -E hello.c -o hello.i<br>2-&gt; gcc -S hello.i -o hello.s<br>3-&gt; gcc -c hello.s -o hello.o<br>4-&gt; gcc hello.o -o hello</p>
-</blockquote>
-<p>步骤1：<strong>预处理阶段</strong>，处理以 # 开头的预处理命令；<br>步骤2：<strong>编译阶段</strong>，翻译成汇编文件；<br>步骤3：<strong>汇编阶段</strong>，将汇编文件翻译成可重定位目标文件（.o文件）；<br>步骤4：<strong>链接阶段</strong>，将可重定位目标文件和 printf.o 等单独预编译好的目标文件进行合并，得到最终的可执行目标文件。<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://qqadapt.qpic.cn/txdocpic/0/8a5e60d8034df3a7be257782321abbca/0" alt="compilie&amp;link"><br>以上就是编译链接成可执行文件的过程，下面介绍两种链接方式：<strong>静态链接</strong>和<strong>动态链接</strong>。</p>
-<h2 id="2-静态链接"><a href="#2-静态链接" class="headerlink" title="2. 静态链接"></a>2. 静态链接</h2><h3 id="2-1-为什么需要静态链接"><a href="#2-1-为什么需要静态链接" class="headerlink" title="2.1 为什么需要静态链接"></a>2.1 为什么需要静态链接</h3><p>在实际开发中，我们不可能把所有的代码都写在一个源文件中，所以会出现很多源文件。这些源文件并非是独立的，而是有一定的依赖关系，如一个源文件需要调用另一个源文件中的函数，但是每个源文件都是独立编译的，即每个 <strong>.c</strong> 将会编译成对应的 <strong>.o</strong> 文件，那么就需要将这些目标文件进行链接，从而生成一个可执行文件，这个过程就是静态链接。</p>
-<h3 id="2-2-静态链接的过程"><a href="#2-2-静态链接的过程" class="headerlink" title="2.2 静态链接的过程"></a>2.2 静态链接的过程</h3><p>在Linux中，静态链接库以 .a 为文件后缀，如 libc.a 为 c语言的静态链接库。<br>在示例程序中，调用了 stdio.h 中的 printf 函数，在 libc.a 中找到 printf.o 和它的依赖目标文件，然后将这些依赖文件和我们的 hello.o 文件链接打包成一个可执行文件，过程如下图：<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://qqadapt.qpic.cn/txdocpic/0/830e5f24d85ce1067c6bc9125e003bc9/0" alt="static"></p>
-<h3 id="2-3-静态链接的优缺点"><a href="#2-3-静态链接的优缺点" class="headerlink" title="2.3 静态链接的优缺点"></a>2.3 静态链接的优缺点</h3><p><strong>优点：</strong></p>
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>有些信息存储时，并不需要占用一整个完整的字节，而只需要占几个或一个二进制位。例如存放一个开关变量时，只需要用到0或1两种状态，用一位二进制位即可。所以，为了节省空间，C语言提供了一种叫<strong>位域</strong>的数据结构。<br><a id="more"></a></p>
+<h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    type [member_name] : width;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>元素</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>type</td>
+<td>只能为int, unsigned int, signed int三种类型</td>
+</tr>
+<tr>
+<td>member_name</td>
+<td>位域的名称</td>
+</tr>
+<tr>
+<td>width</td>
+<td>位域中位的数量。宽度必须小于或等于指定类型的位宽度</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>位域的使用：</p>
 <ol>
-<li>因为可执行程序中已经具备了执行程序所需要的所有东西，所以程序加载速度快，执行速度也快。</li>
-<li>只需要保证开发者计算机上有正确的 .a 文件，在发布可执行程序时，不需要考虑发布机器上是否存在 .a 文件。</li>
+<li>位域成员的类型必须指定为unsigned或int类型。</li>
+<li>一个位段必须存储在同一存储单元中，不能跨两个单元。如果第一个单元空间不能容纳下一个位段，则该空间不用，而从下一个单元起存放该位段。</li>
+<li>可以定义无名位域（形式：type :0;），无名位域用于填充内存布局，表示下一个位域从下一个内存边界开始。</li>
+<li>位域的长度不能大于存储单元的长度，也不能定义位域数组。</li>
+<li>位域可以用整型格式符输出。</li>
+<li>位域可以在数值表达式中引用，它会被系统自动地转换成整型数。</li>
+<li>位域定义的第一个位域长度不能为0。</li>
 </ol>
-<p><strong>缺点：</strong></p>
-<ol>
-<li>使用静态链接生成的可执行文件体积较大，包含了相同的公共代码，造成空间浪费。</li>
-<li>更新困难，如果静态库文件更新，需要重新编译链接整个可执行文件，再行发布。</li>
-</ol>
-<h2 id="3-动态链接"><a href="#3-动态链接" class="headerlink" title="3. 动态链接"></a>3. 动态链接</h2><p>为了解决静态链接的缺点，就需要使用到动态链接。<br>在Linux中，动态链接库以 .so 为文件后缀。<br>动态链接的思想就是将程序按照模块拆分为各个相对独立的部分，在程序运行时才将它们链接在一起形成完整的程序。<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://qqadapt.qpic.cn/txdocpic/0/4f8013511ac6fbf141ebdfe1a1d065aa/0" alt="mem"><br><strong>优点：</strong></p>
-<ol>
-<li>更加节省内存并减少页面交换。</li>
-<li>更新方便，更新时只需要替换原来的目标文件，而无需将所有的程序再重新链接一遍。</li>
-<li>可是实现进程之间的资源共享。</li>
-</ol>
-<p><strong>缺点：</strong></p>
-<ol>
-<li>当某个动态库更新后，如果依赖该动态库的程序与更新后的动态库不兼容，则该程序将无法正常执行。</li>
-<li>因为是运行时加载，所以相对于静态链接，性能会有所下降。</li>
-</ol>
+<h2 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">prev</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">next</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl;                      <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> sz;                        <span class="comment">// 32b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> count : <span class="number">16</span>;                <span class="comment">// 16b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> encoding : <span class="number">2</span>;              <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> container : <span class="number">2</span>;             <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> recompress : <span class="number">1</span>;            <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> attempted_compress : <span class="number">1</span>;    <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> extra : <span class="number">10</span>;                <span class="comment">// 10b</span></span><br><span class="line">&#125; quicklistNode;                            <span class="comment">// = (256b / 8) = 32Byte</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;quicklistNode size: %d\n&quot;</span>, <span class="keyword">sizeof</span>(struct quicklistNode));</span><br><span class="line">    <span class="comment">// output :</span></span><br><span class="line">    <span class="comment">// quicklistNode size: 32</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
     </div>
 
@@ -316,7 +314,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="http://example.com/c-c/cpp-compilie-link/" title="c++ 编译与链接">http://example.com/c-c/cpp-compilie-link/</a>
+    <a href="http://example.com/c/cpp-bit-field/" title="结构体中的位域">http://example.com/c/cpp-bit-field/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
@@ -327,9 +325,9 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/c/" rel="tag"># c++</a>
-              <a href="/tags/%E7%BC%96%E8%AF%91/" rel="tag"># 编译</a>
-              <a href="/tags/%E9%93%BE%E6%8E%A5/" rel="tag"># 链接</a>
+              <a href="/tags/c/" rel="tag"># c</a>
+              <a href="/tags/%E4%BD%8D%E5%9F%9F/" rel="tag"># 位域</a>
+              <a href="/tags/bitfield/" rel="tag"># bitfield</a>
           </div>
 
         
@@ -338,12 +336,12 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/c-c/cpp-STL-brief/" rel="prev" title="C++ STL库底层数据结构">
-      <i class="fa fa-chevron-left"></i> C++ STL库底层数据结构
+    <a href="/c/cpp-byte-endian/" rel="prev" title="c/c++ 内存大小端模式">
+      <i class="fa fa-chevron-left"></i> c/c++ 内存大小端模式
     </a></div>
       <div class="post-nav-item">
-    <a href="/c-c/cpp11-features/" rel="next" title="C++11新特性">
-      C++11新特性 <i class="fa fa-chevron-right"></i>
+    <a href="/c/cpp-lru-lfu/" rel="next" title="缓存淘汰算法LRU与LFU">
+      缓存淘汰算法LRU与LFU <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -404,7 +402,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E7%BC%96%E8%AF%91%E7%B3%BB%E7%BB%9F"><span class="nav-number">1.</span> <span class="nav-text">1. 编译系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5"><span class="nav-number">2.</span> <span class="nav-text">2. 静态链接</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 为什么需要静态链接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5%E7%9A%84%E8%BF%87%E7%A8%8B"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 静态链接的过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 静态链接的优缺点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E5%8A%A8%E6%80%81%E9%93%BE%E6%8E%A5"><span class="nav-number">3.</span> <span class="nav-text">3. 动态链接</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E4%BB%8B"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9A%E4%B9%89"><span class="nav-number">2.</span> <span class="nav-text">定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BE%8B%E5%AD%90"><span class="nav-number">3.</span> <span class="nav-text">例子</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -427,7 +425,7 @@
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">6</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
@@ -597,7 +595,7 @@ NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
       repo        : 'blog_comments',
       owner       : 'Grizzly1127',
       admin       : ['Grizzly1127'],
-      id          : '0966deab6bb6c50a6b44c3710acca4dd',
+      id          : 'c3d69c6f7662c977e6743220d4b145af',
         language: 'zh-CN',
       distractionFreeMode: false
     });

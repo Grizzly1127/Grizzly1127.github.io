@@ -2,7 +2,7 @@
 <search>
   <entry>
     <title>C++ STL库底层数据结构</title>
-    <url>/c-c/cpp-STL-brief/</url>
+    <url>/c/cpp-STL-brief/</url>
     <content><![CDATA[<p>STL容器可以分为以下几大类：<br>① 序列容器：vector、list、deque、string<br>② 关联容器：set、multiset、unorderd_set、unorderd_multiset、map、multimap、unorderd_map、unorderd_multimap<br>③ 其他容器：stack、queue、valarray、bitset<br><a id="more"></a></p>
 <h2 id="1-vector"><a href="#1-vector" class="headerlink" title="1. vector"></a>1. vector</h2><p>内部数据结构：<strong>数组</strong>。<br>vector 数组动态增加大小，并不是在原空间之后持续新空间（因为无法保证原空间之后尚有可供配置的空间），而是以原大小的两倍另外配置一块较大的空间，然后将原内容拷贝过来，然后才开始在原内容之后构造新元素，并释放原空间。因此，对 vector 的任何操作，一旦引起空间重新配置，同时指向原vector 的所有迭代器就都失效了。<br>vector 常用来保存需要经常进行随机访问的内容，并且不需要经常对中间元素进行添加删除操作。</p>
 <h2 id="2-list"><a href="#2-list" class="headerlink" title="2. list"></a>2. list</h2><p>内部数据结构：<strong>环状双向链表</strong>。<br>不能随机访问元素，可双向遍历。增加任何元素都不会使迭代器失效。删除元素时，除了指向当前被删除元素的迭代器外，其它迭代器都不会失效。</p>
@@ -17,7 +17,7 @@
 <h2 id="9-unordered-map和unordered-multimap"><a href="#9-unordered-map和unordered-multimap" class="headerlink" title="9. unordered_map和unordered_multimap"></a>9. unordered_map和unordered_multimap</h2><p>内部数据结构：<strong>hash table</strong>。<br>底层由哈希表实现。无序，查找元素的时间复杂度为常数。</p>
 ]]></content>
       <categories>
-        <category>c/c++</category>
+        <category>c++</category>
       </categories>
       <tags>
         <tag>c++</tag>
@@ -26,7 +26,7 @@
   </entry>
   <entry>
     <title>结构体中的位域</title>
-    <url>/cpp/cpp-bit-field/</url>
+    <url>/c/cpp-bit-field/</url>
     <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>有些信息存储时，并不需要占用一整个完整的字节，而只需要占几个或一个二进制位。例如存放一个开关变量时，只需要用到0或1两种状态，用一位二进制位即可。所以，为了节省空间，C语言提供了一种叫<strong>位域</strong>的数据结构。<br><a id="more"></a></p>
 <h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    type [member_name] : width;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 <div class="table-container">
@@ -66,7 +66,7 @@
 <h2 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h2><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">prev</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">next</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl;                      <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> sz;                        <span class="comment">// 32b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> count : <span class="number">16</span>;                <span class="comment">// 16b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> encoding : <span class="number">2</span>;              <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> container : <span class="number">2</span>;             <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> recompress : <span class="number">1</span>;            <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> attempted_compress : <span class="number">1</span>;    <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> extra : <span class="number">10</span>;                <span class="comment">// 10b</span></span><br><span class="line">&#125; quicklistNode;                            <span class="comment">// = (256b / 8) = 32Byte</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;quicklistNode size: %d\n&quot;</span>, <span class="keyword">sizeof</span>(struct quicklistNode));</span><br><span class="line">    <span class="comment">// output :</span></span><br><span class="line">    <span class="comment">// quicklistNode size: 32</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
-        <category>cpp</category>
+        <category>c++</category>
       </categories>
       <tags>
         <tag>c</tag>
@@ -76,7 +76,7 @@
   </entry>
   <entry>
     <title>c/c++ 内存大小端模式</title>
-    <url>/c-c/cpp-byte-endian/</url>
+    <url>/c/cpp-byte-endian/</url>
     <content><![CDATA[<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p><strong>维基百科：</strong><br>字节顺序，又称端序或尾序（英语：<strong>Endianness</strong>），在计算机科学领域中，指存储器中或在数字通信链路中，组成多字节的字的字节的排列顺序。<br><a id="more"></a><br>在几乎所有的机器上，多字节对象都被存储为连续的字节序列。例如在C语言中，一个类型为int的变量x地址为0x100，那么其对应地址表达式&amp;x的值为0x100。且x的四个字节将被存储在存储器的0x100, 0x101, 0x102, 0x103位置。</p>
 <p>字节的排列方式有两个通用规则。例如，一个多位的整数，按照存储地址从低到高排序的字节中，如果该整数的最低有效字节（类似于最低有效位）在最高有效字节的前面，则称小端序；反之则称大端序。在网络应用中，字节序是一个必须被考虑的因素，因为不同机器类型可能采用不同标准的字节序，所以均按照网络标准转化。</p>
 <p>例如假设上述变量x类型为int，位于地址0x100处，它的值为0x01234567，地址范围为0x100~0x103字节，其内部排列顺序依赖于机器的类型。大端法从首位开始将是：0x100: 01, 0x101: 23,..。而小端法将是：0x100: 67, 0x101: 45,..。</p>
@@ -122,7 +122,7 @@
 <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">memrev16</span><span class="params">(<span class="keyword">void</span> *p)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *x = p, t;</span><br><span class="line"></span><br><span class="line">    t = x[<span class="number">0</span>];</span><br><span class="line">    x[<span class="number">0</span>] = x[<span class="number">1</span>];</span><br><span class="line">    x[<span class="number">1</span>] = t;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">memrev32</span><span class="params">(<span class="keyword">void</span> *p)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *x = p, t;</span><br><span class="line"></span><br><span class="line">    t = x[<span class="number">0</span>];</span><br><span class="line">    x[<span class="number">0</span>] = x[<span class="number">3</span>];</span><br><span class="line">    x[<span class="number">3</span>] = t;</span><br><span class="line">    t = x[<span class="number">1</span>];</span><br><span class="line">    x[<span class="number">1</span>] = x[<span class="number">2</span>];</span><br><span class="line">    x[<span class="number">2</span>] = t;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">memrev64</span><span class="params">(<span class="keyword">void</span> *p)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *x = p, t;</span><br><span class="line"></span><br><span class="line">    t = x[<span class="number">0</span>];</span><br><span class="line">    x[<span class="number">0</span>] = x[<span class="number">7</span>];</span><br><span class="line">    x[<span class="number">7</span>] = t;</span><br><span class="line">    t = x[<span class="number">1</span>];</span><br><span class="line">    x[<span class="number">1</span>] = x[<span class="number">6</span>];</span><br><span class="line">    x[<span class="number">6</span>] = t;</span><br><span class="line">    t = x[<span class="number">2</span>];</span><br><span class="line">    x[<span class="number">2</span>] = x[<span class="number">5</span>];</span><br><span class="line">    x[<span class="number">5</span>] = t;</span><br><span class="line">    t = x[<span class="number">3</span>];</span><br><span class="line">    x[<span class="number">3</span>] = x[<span class="number">4</span>];</span><br><span class="line">    x[<span class="number">4</span>] = t;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">uint16_t</span> <span class="title">intrev16</span><span class="params">(<span class="keyword">uint16_t</span> v)</span> </span>&#123;</span><br><span class="line">    memrev16(&amp;v);</span><br><span class="line">    <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">uint32_t</span> <span class="title">intrev32</span><span class="params">(<span class="keyword">uint32_t</span> v)</span> </span>&#123;</span><br><span class="line">    memrev32(&amp;v);</span><br><span class="line">    <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">uint64_t</span> <span class="title">intrev64</span><span class="params">(<span class="keyword">uint64_t</span> v)</span> </span>&#123;</span><br><span class="line">    memrev64(&amp;v);</span><br><span class="line">    <span class="keyword">return</span> v;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
-        <category>c/c++</category>
+        <category>c++</category>
       </categories>
       <tags>
         <tag>c++</tag>
@@ -133,7 +133,7 @@
   </entry>
   <entry>
     <title>c++ 编译与链接</title>
-    <url>/c-c/cpp-compilie-link/</url>
+    <url>/c/cpp-compilie-link/</url>
     <content><![CDATA[<h2 id="1-编译系统"><a href="#1-编译系统" class="headerlink" title="1. 编译系统"></a>1. 编译系统</h2><p>从源码文件到可执行程序是如何实现的呢？下面写个简单的程序来进行说明。<br>以下是一个 hello.c 程序：</p>
 <a id="more"></a>
 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Hello world!\n&quot;</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -171,7 +171,7 @@
 </ol>
 ]]></content>
       <categories>
-        <category>c/c++</category>
+        <category>c++</category>
       </categories>
       <tags>
         <tag>c++</tag>
@@ -181,7 +181,7 @@
   </entry>
   <entry>
     <title>缓存淘汰算法LRU与LFU</title>
-    <url>/c-c/cpp-lru-lfu/</url>
+    <url>/c/cpp-lru-lfu/</url>
     <content><![CDATA[<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p>常用的缓存过期淘汰策略有：LRU、LFU、FIFO等，因为FIFO（First in first out）算法是一种先进先出的队列，算法很简单，就不具体描述了，下面介绍LRU和LFU的算法策略。<br><a id="more"></a><br>LRU：最近最少使用淘汰算法（Least Recently Used）。如果一个数据在最近一段时间内没有被访问到，那么可以认为在将来它被访问的可能性也很小。因此当空间满时，最久没有被访问的数据最先被淘汰。<br>LFU：最不经常使用淘汰算法（Least Frequently Used），如果一个数据在最近一段时间内很少被访问到，那么可以认为在将来它被访问的可能性也很小。因此当空间满时，最小频率访问的数据最先被淘汰。</p>
 <h2 id="算法实现"><a href="#算法实现" class="headerlink" title="算法实现"></a>算法实现</h2><p><strong>LRU：</strong><br>最常见的算法是使用一个链表保存缓存数据，不考虑时间复杂度的基本算法思想如下：  </p>
 <ol>
@@ -203,7 +203,7 @@
 <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">LFUStruct</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> key, value, freq;</span><br><span class="line">    LFUStruct (<span class="keyword">int</span> k, <span class="keyword">int</span> v, <span class="keyword">int</span> f) : key(k), value(v), freq(f) &#123;&#125;</span><br><span class="line">&#125; lfu;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">LFUCache</span> &#123;</span></span><br><span class="line">    <span class="keyword">int</span> m_capacity;</span><br><span class="line">    <span class="keyword">int</span> m_min_freq;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">unordered_map</span>&lt;<span class="keyword">int</span>, <span class="built_in">list</span>&lt;lfu&gt;::iterator&gt; m_key_table;</span><br><span class="line">    <span class="built_in">unordered_map</span>&lt;<span class="keyword">int</span>, <span class="built_in">list</span>&lt;lfu&gt;&gt; m_freq_table;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    LFUCache(<span class="keyword">int</span> capacity) &#123;</span><br><span class="line">        m_capacity = capacity;</span><br><span class="line">        m_min_freq = <span class="number">0</span>;</span><br><span class="line">        m_key_table.clear();</span><br><span class="line">        m_freq_table.clear();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">int</span> <span class="title">get</span><span class="params">(<span class="keyword">int</span> key)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (m_capacity == <span class="number">0</span>) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">auto</span> it = m_key_table.find(key);</span><br><span class="line">        <span class="keyword">if</span> (it == m_key_table.end()) <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 存在key，则取出value并且freq+1，把节点移入到m_freq_table[freq+1]的链表顶部</span></span><br><span class="line">        <span class="keyword">auto</span> get_it = it-&gt;second;</span><br><span class="line">        <span class="keyword">int</span> value = get_it-&gt;value;</span><br><span class="line">        <span class="keyword">int</span> freq = get_it-&gt;freq;</span><br><span class="line">        m_freq_table[freq].erase(get_it);</span><br><span class="line">        <span class="keyword">if</span> (m_freq_table[freq].size() == <span class="number">0</span>) &#123;</span><br><span class="line">            m_freq_table.erase(freq);</span><br><span class="line">            <span class="keyword">if</span> (m_min_freq == freq) m_min_freq += <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        m_freq_table[freq + <span class="number">1</span>].push_front(lfu(key, value, freq + <span class="number">1</span>));</span><br><span class="line">        m_key_table[key] = m_freq_table[freq + <span class="number">1</span>].begin();</span><br><span class="line">        <span class="keyword">return</span> value;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">put</span><span class="params">(<span class="keyword">int</span> key, <span class="keyword">int</span> value)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (m_capacity == <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line">        <span class="keyword">auto</span> it = m_key_table.find(key);</span><br><span class="line">        <span class="comment">// 如果没有找到该key，表明不存在，则插入</span></span><br><span class="line">        <span class="keyword">if</span> (it == m_key_table.end()) &#123;</span><br><span class="line">            <span class="comment">// 当缓存达到最大容量时，需要删除访问频率最少的键</span></span><br><span class="line">            <span class="keyword">if</span> (m_key_table.size() &gt;= m_capacity) &#123;</span><br><span class="line">                <span class="keyword">auto</span> del = m_freq_table[m_min_freq].back(); <span class="comment">// 链表末尾弹出需要删除的节点</span></span><br><span class="line">                m_freq_table[m_min_freq].pop_back();</span><br><span class="line">                m_key_table.erase(del.key);</span><br><span class="line">                <span class="keyword">if</span>(m_freq_table[m_min_freq].size() == <span class="number">0</span>) &#123;</span><br><span class="line">                    m_freq_table.erase(m_min_freq);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">// 插入新缓存</span></span><br><span class="line">            m_freq_table[<span class="number">1</span>].push_front(lfu(key, value, <span class="number">1</span>));</span><br><span class="line">            m_key_table[key] = m_freq_table[<span class="number">1</span>].begin();</span><br><span class="line">            m_min_freq = <span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">//如果找到key，则更新</span></span><br><span class="line">            <span class="keyword">auto</span> update_it = it-&gt;second;</span><br><span class="line">            <span class="keyword">int</span> freq = update_it-&gt;freq;</span><br><span class="line">            m_freq_table[freq].erase(update_it); <span class="comment">// 删除freq_table里的缓存节点</span></span><br><span class="line">            <span class="keyword">if</span> (m_freq_table[freq].size() == <span class="number">0</span>) &#123;</span><br><span class="line">                m_freq_table.erase(freq);</span><br><span class="line">                <span class="keyword">if</span> (m_min_freq == freq) &#123;</span><br><span class="line">                    m_min_freq += <span class="number">1</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            m_freq_table[freq + <span class="number">1</span>].push_front(lfu(key, value, freq + <span class="number">1</span>));</span><br><span class="line">            m_key_table[key] = m_freq_table[freq + <span class="number">1</span>].begin();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
-        <category>c/c++</category>
+        <category>c++</category>
       </categories>
       <tags>
         <tag>c++</tag>
@@ -213,7 +213,7 @@
   </entry>
   <entry>
     <title>c/c++ 内存对齐</title>
-    <url>/c-c/cpp-memory-alignment/</url>
+    <url>/c/cpp-memory-alignment/</url>
     <content><![CDATA[<h2 id="什么是内存对齐"><a href="#什么是内存对齐" class="headerlink" title="什么是内存对齐"></a>什么是内存对齐</h2><p>内存对齐，也叫字节对齐。<br>现代计算机中，内存空间都是按照字节划分的，从理论上讲似乎对任何类型的变量的访问可以从任何地址开始，但实际情况是在访问特定类型变量的时候经常在特定的内存地址访问，这就需要各种类型数据按照一定的规则在空间上排列，而不是顺序的一个接一个的排放，这就是对齐。<br><a id="more"></a></p>
 <p>CPU每次从内存中取出数据或者指令时，并非想象中的一个一个字节取出拼接的，而是根据自己的字长，也就是CPU一次能够处理的数据长度取出内存块，比如32位处理器将取出32位也就是4个字节的内存块进行处理。</p>
 <h2 id="为什么需要内存对齐"><a href="#为什么需要内存对齐" class="headerlink" title="为什么需要内存对齐"></a>为什么需要内存对齐</h2><p>1、平台原因(移植原因)：不是所有的硬件平台都能访问任意地址上的任意数据的；某些硬件平台只能在某些地址处取某些特定类型的数据，否则抛出硬件异常。<br>2、性能原因：数据结构(尤其是栈)应该尽可能地在自然边界上对齐。原因在于，为了访问未对齐的内存，处理器需要作两次内存访问；而对齐的内存访问仅需要一次访问。</p>
@@ -243,7 +243,7 @@
 <p>整体对齐系数=min(max(int, char, short, char), 16) = 4<br>将9提升到4的倍数，则为12，所以最终结果为12个字节。</p>
 ]]></content>
       <categories>
-        <category>c/c++</category>
+        <category>c++</category>
       </categories>
       <tags>
         <tag>c++</tag>
@@ -1694,7 +1694,7 @@
   </entry>
   <entry>
     <title>C++11新特性</title>
-    <url>/c-c/cpp11-features/</url>
+    <url>/c/cpp11-features/</url>
     <content><![CDATA[<h2 id="1-新功能"><a href="#1-新功能" class="headerlink" title="1. 新功能"></a>1. 新功能</h2><h3 id="1-1-新类型"><a href="#1-1-新类型" class="headerlink" title="1.1 新类型"></a>1.1 新类型</h3><p>新增类型 long long 和 unsigned long long，以支持64位（或更宽）的整型；新增类型 char16_t 和 char32_t，以支持16位和32位的字符表示。</p>
 <h3 id="1-2-统一的初始化"><a href="#1-2-统一的初始化" class="headerlink" title="1.2 统一的初始化"></a>1.2 统一的初始化</h3><a id="more"></a>
 <p>C++11扩大了用大括号括起的列表（初始化列表）的适用范围，使其可用于所有内置类型和用户定义的类型（即类对象）。使用初始化列表时，可添加等号（=），也可不添加：</p>
@@ -1785,7 +1785,7 @@
 <p>从C++11开始，Lambda被广泛用在STL中，比如foreach。与函数指针比起来，函数指针有巨大的缺陷：1.函数定义在别处，阅读起来很困难；2.使用函数指针，很可能导致编译器不对其进行inline优化，循环次数太多时，函数指针和Lambda比起来性能差距太大。函数2指针不能应用在一些运行时才能决定的状态，在没有C++11时，只能用仿函数。使得学习STL算法的代价大大降低。</p>
 ]]></content>
       <categories>
-        <category>c/c++</category>
+        <category>c++</category>
       </categories>
       <tags>
         <tag>c++</tag>
