@@ -1696,6 +1696,7 @@
     <title>CentOS7 vim个人配置</title>
     <url>/vim/vim-configuration/</url>
     <content><![CDATA[<p>因为最终想要安装YCM插件，而最新的YCM插件只支持 python3.6 和 vim8.1 以上的版本，所以需要更新系统自带的 python 和 vim（如果以安装最新的环境，则可忽略）。<br><a id="more"></a></p>
+<p>全文最底下添加了vimrc配置的信息可自行下载。</p>
 <h2 id="安装python3"><a href="#安装python3" class="headerlink" title="安装python3"></a>安装python3</h2><p>安装相关编译环境：</p>
 <figure class="highlight text"><table><tr><td class="code"><pre><span class="line">yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gcc make</span><br></pre></td></tr></table></figure>
 <p>下载 python 安装包，此处我下载的是 3.7.4 版本的 python，可自行选择最新的版本下载安装：</p>
@@ -1787,6 +1788,46 @@
 <figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;preservim/tagbar&#x27;</span><br></pre></td></tr></table></figure>
 <p>相关配置如下：</p>
 <figure class="highlight text"><table><tr><td class="code"><pre><span class="line">&quot; [tagbar]</span><br><span class="line">&quot; 设置tagbar使用的ctags的插件,必须要设置对</span><br><span class="line">let g:tagbar_ctags_bin=&#x27;/usr/bin/ctags&#x27;</span><br><span class="line">&quot; 设置tagbar的窗口宽度</span><br><span class="line">let g:tagbar_width=35</span><br><span class="line">&quot; 设置tagbar的窗口显示的位置,默认右边</span><br><span class="line">let g:tagbar_right=1</span><br><span class="line">&quot; 打开文件自动 打开tagbar</span><br><span class="line">&quot; autocmd BufReadPost *.cpp,*.c,*.h,*.hpp,*.cc,*.cxx call tagbar#autoopen()</span><br><span class="line">&quot; 这是tagbar一打开，光标即在tagbar页面内，默认在vim打开的文件内</span><br><span class="line">let g:tagbar_autofocus = 1</span><br><span class="line">&quot;设置标签不排序，默认排序</span><br><span class="line">let g:tagbar_sort = 0</span><br><span class="line">&quot; 映射tagbar的快捷键</span><br><span class="line">nnoremap &lt;silent&gt; &lt;F3&gt; :TagbarToggle&lt;CR&gt;</span><br></pre></td></tr></table></figure>
+<h4 id="vim-airline状态栏美化"><a href="#vim-airline状态栏美化" class="headerlink" title="vim-airline状态栏美化"></a>vim-airline状态栏美化</h4><p><a href="https://github.com/vim-airline/vim-airline">vim-airline</a> 和 <a href="https://github.com/vim-airline/vim-airline-themes">vim-airline-themes</a> 搭配能将vim的底部状态增强/美化。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;vim-airline/vim-airline&#x27;</span><br><span class="line">Plug &#x27;vim-airline/vim-airline-themes&#x27;</span><br></pre></td></tr></table></figure>
+<p>相关配置如下：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">set t_Co=256      &quot;在windows中用xshell连接打开vim可以显示色彩</span><br><span class="line">let g:airline#extensions#tabline#enabled = 1   &quot; 是否打开tabline</span><br><span class="line">&quot;这个是安装字体后 必须设置此项</span><br><span class="line">let g:airline_powerline_fonts = 1</span><br><span class="line">set laststatus=2  &quot;永远显示状态栏</span><br><span class="line">let g:airline_theme=&#x27;bubblegum&#x27; &quot;选择主题</span><br><span class="line">let g:airline#extensions#tabline#enabled=1    &quot;Smarter tab line:显示窗口tab和buffer</span><br><span class="line">&quot;let g:airline#extensions#tabline#left_sep = &#x27; &#x27;  &quot;separater</span><br><span class="line">&quot;let g:airline#extensions#tabline#left_alt_sep = &#x27;|&#x27;  &quot;separater</span><br><span class="line">&quot;let g:airline#extensions#tabline#formatter = &#x27;default&#x27;  &quot;formater</span><br><span class="line">let g:airline_left_sep = &#x27;▶&#x27;</span><br><span class="line">let g:airline_left_alt_sep = &#x27;❯&#x27;</span><br><span class="line">let g:airline_right_sep = &#x27;◀&#x27;</span><br><span class="line">let g:airline_right_alt_sep = &#x27;❮&#x27;</span><br></pre></td></tr></table></figure>
+<h4 id="nerdcommenter批量注释"><a href="#nerdcommenter批量注释" class="headerlink" title="nerdcommenter批量注释"></a>nerdcommenter批量注释</h4><p><a href="https://github.com/preservim/nerdcommenter">nerdcommenter</a>是一款对代码进行批量注释的插件。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;preservim/nerdcommenter&#x27;</span><br></pre></td></tr></table></figure>
+<p>相关配置如下：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">let g:NERDSpaceDelims = 1   &quot; 注释中间加一个空格  </span><br><span class="line">let g:NERDDefaultAlign = &#x27;left&#x27; &quot; 多行注释向左对齐</span><br></pre></td></tr></table></figure>
+<p>使用方法：<br>在 Normal 和 Visual 模式下：</p>
+<ul>
+<li>\<leader>ca在可选的注释方式之间切换，比如C/C++ 的块注释/<em> </em>/和行注释//  </leader></li>
+<li>\<leader>cc注释当前行</leader></li>
+<li>\<leader>c\<space> 切换注释/非注释状态</space></leader></li>
+<li>\<leader>cs 以”性感”的方式注释</leader></li>
+<li>\<leader>cA 在当前行尾添加注释符，并进入Insert模式</leader></li>
+<li>\<leader>cu 取消注释</leader></li>
+<li>\<leader>c$ 从光标开始到行尾注释  ，这个要说说因为c$也是从光标到行尾的快捷键，这个按过逗号（，）要快一点按c$</leader></li>
+<li>2\<leader>cc 光标以下count行添加注释</leader></li>
+<li>2\<leader>cu 光标以下count行取消注释</leader></li>
+<li>2\<leader>cm:光标以下count行添加块注释(2,cm)</leader></li>
+<li>Normal模式下，几乎所有命令前面都可以指定行数</li>
+<li>Visual模式下执行命令，会对选中的特定区块进行注释/反注释</li>
+</ul>
+<h4 id="golang相关插件"><a href="#golang相关插件" class="headerlink" title="golang相关插件"></a>golang相关插件</h4><p><a href="https://github.com/fatih/vim-go">vim-go</a> 是一款go代码高亮和语法检查的插件。</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;fatih/vim-go&#x27;, &#123; &#x27;do&#x27;: &#x27;:GoUpdateBinaries&#x27; &#125;</span><br></pre></td></tr></table></figure>
+<p><a href="https://github.com/nsf/gocode">gocode</a> 是一款go的代码提示插件。<br>首先要正确设置GOROOT、GOPATH、GOBIN等几个环境变量。<br>下载gocode：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">mkdir -p $GOPATH/src/github.com/nsf</span><br><span class="line"></span><br><span class="line">cd $GOPATH/src/github.com/nsf</span><br><span class="line"></span><br><span class="line">git clone https://github.com/nsf/gocode.git</span><br></pre></td></tr></table></figure>
+<p>编译安装gocode：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">cd gocode</span><br><span class="line"></span><br><span class="line">go build</span><br><span class="line"></span><br><span class="line">go install</span><br></pre></td></tr></table></figure>
+<p>编译完成后生成一个 gocode 的可执行文件，并被放到 $GOBIN 目录下。<br>接下来安装vim-gocode插件:</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">Plug &#x27;nsf/gocode&#x27;, &#123; &#x27;rtp&#x27;: &#x27;vim&#x27;, &#x27;do&#x27;: &#x27;~/.vim/plugged/gocode/vim/symlink.sh&#x27; &#125;</span><br></pre></td></tr></table></figure>
+<h4 id="YouCompleteMe代码补全插件"><a href="#YouCompleteMe代码补全插件" class="headerlink" title="YouCompleteMe代码补全插件"></a>YouCompleteMe代码补全插件</h4><p><a href="https://github.com/ycm-core/YouCompleteMe">YouCompleteMe</a> 是一款非常强大的异步代码自动补全，支持非常多的编程语言，如：C/C++, Golang, Python, Rust, Java等。</p>
+<p>准备依赖环境：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">yum install cmake</span><br><span class="line"></span><br><span class="line">yum install python-devel libffi-devel graphviz-devel elfutils-libelf-devel readline-devel libedit-devel libxml2-devel protobuf-devel gtext-devel doxygen swig</span><br></pre></td></tr></table></figure>
+<p>下载安装：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">git clone https://github.com/ycm-core/YouCompleteMe.git ~/.vim/plugged/YouCompleteMe</span><br><span class="line"></span><br><span class="line">cd ~/.vim/plugged/YouCompleteMe</span><br><span class="line"></span><br><span class="line">python3 install.py --all</span><br></pre></td></tr></table></figure>
+<p>相关配置如下：</p>
+<figure class="highlight text"><table><tr><td class="code"><pre><span class="line">let g:ycm_confirm_extra_conf=0      &quot; 关闭加载.ycm_extra_conf.py提示</span><br><span class="line">let g:ycm_complete_in_comments = 1  &quot;在注释输入中也能补全</span><br><span class="line">let g:ycm_complete_in_strings = 1   &quot;在字符串输入中也能补全</span><br><span class="line">let g:ycm_collect_identifiers_from_tags_files=1                 &quot; 开启 YCM 基于标签引擎</span><br><span class="line">let g:ycm_collect_identifiers_from_comments_and_strings = 1   &quot;注释和字符串中的文字也会被收入补全</span><br><span class="line">let g:ycm_seed_identifiers_with_syntax=1   &quot;语言关键字补全, 不过python关键字都很短，所以，需要的自己打开</span><br><span class="line">let g:ycm_min_num_of_chars_for_completion=2                     &quot; 从第2个键入字符就开始罗列匹配项</span><br><span class="line">&quot; 引入，可以补全系统，以及python的第三方包 针对新老版本YCM做了兼容</span><br><span class="line">if !empty(glob(&quot;~/..vim/plugged/YouCompleteMe/third_party/ycmd/.ycm_extra_conf.py&quot;))</span><br><span class="line">    let g:ycm_global_ycm_extra_conf = &quot;~/..vim/plugged/YouCompleteMe/third_party/ycmd/.ycm_extra_conf.py&quot;</span><br><span class="line">endif</span><br><span class="line">&quot;mapping</span><br><span class="line">nmap &lt;leader&gt;gd :YcmDiags&lt;CR&gt;</span><br><span class="line">nnoremap &lt;leader&gt;gl :YcmCompleter GoToDeclaration&lt;CR&gt;           &quot; 跳转到申明处</span><br><span class="line">nnoremap &lt;leader&gt;gf :YcmCompleter GoToDefinition&lt;CR&gt;            &quot; 跳转到定义处</span><br><span class="line">nnoremap &lt;leader&gt;gg :YcmCompleter GoToDefinitionElseDeclaration&lt;CR&gt;</span><br><span class="line">&quot; 直接触发自动补全</span><br><span class="line">let g:ycm_key_invoke_completion = &#x27;&lt;C-Space&gt;&#x27;</span><br><span class="line">&quot; 黑名单,不启用</span><br><span class="line">      \ &#x27;tagbar&#x27; : 1,</span><br><span class="line">      \ &#x27;gitcommit&#x27; : 1,</span><br><span class="line">      \&#125;</span><br></pre></td></tr></table></figure>
+<hr>
+<p>此处还没有结束，未来如果碰到好用的插件，会继续更新。。。<br>以上所有的配置我将它上传到了github上，有需要的可自行下载 <a href="https://github.com/Grizzly1127/vim-config">vimrc</a>。</p>
 ]]></content>
       <categories>
         <category>vim</category>
