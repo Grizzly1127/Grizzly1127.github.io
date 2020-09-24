@@ -25,56 +25,6 @@
       </tags>
   </entry>
   <entry>
-    <title>结构体中的位域</title>
-    <url>/c/cpp-bit-field/</url>
-    <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>有些信息存储时，并不需要占用一整个完整的字节，而只需要占几个或一个二进制位。例如存放一个开关变量时，只需要用到0或1两种状态，用一位二进制位即可。所以，为了节省空间，C语言提供了一种叫<strong>位域</strong>的数据结构。<br><a id="more"></a></p>
-<h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    type [member_name] : width;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
-<div class="table-container">
-<table>
-<thead>
-<tr>
-<th>元素</th>
-<th>描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>type</td>
-<td>只能为int, unsigned int, signed int三种类型</td>
-</tr>
-<tr>
-<td>member_name</td>
-<td>位域的名称</td>
-</tr>
-<tr>
-<td>width</td>
-<td>位域中位的数量。宽度必须小于或等于指定类型的位宽度</td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>位域的使用：</p>
-<ol>
-<li>位域成员的类型必须指定为unsigned或int类型。</li>
-<li>一个位段必须存储在同一存储单元中，不能跨两个单元。如果第一个单元空间不能容纳下一个位段，则该空间不用，而从下一个单元起存放该位段。</li>
-<li>可以定义无名位域（形式：type :0;），无名位域用于填充内存布局，表示下一个位域从下一个内存边界开始。</li>
-<li>位域的长度不能大于存储单元的长度，也不能定义位域数组。</li>
-<li>位域可以用整型格式符输出。</li>
-<li>位域可以在数值表达式中引用，它会被系统自动地转换成整型数。</li>
-<li>位域定义的第一个位域长度不能为0。</li>
-</ol>
-<h2 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h2><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">prev</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">next</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl;                      <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> sz;                        <span class="comment">// 32b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> count : <span class="number">16</span>;                <span class="comment">// 16b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> encoding : <span class="number">2</span>;              <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> container : <span class="number">2</span>;             <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> recompress : <span class="number">1</span>;            <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> attempted_compress : <span class="number">1</span>;    <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> extra : <span class="number">10</span>;                <span class="comment">// 10b</span></span><br><span class="line">&#125; quicklistNode;                            <span class="comment">// = (256b / 8) = 32Byte</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;quicklistNode size: %d\n&quot;</span>, <span class="keyword">sizeof</span>(struct quicklistNode));</span><br><span class="line">    <span class="comment">// output :</span></span><br><span class="line">    <span class="comment">// quicklistNode size: 32</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>c++</category>
-      </categories>
-      <tags>
-        <tag>c</tag>
-        <tag>位域</tag>
-        <tag>bitfield</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>C/C++ 内存大小端模式</title>
     <url>/c/cpp-byte-endian/</url>
     <content><![CDATA[<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><p><strong>维基百科：</strong><br>字节顺序，又称端序或尾序（英语：<strong>Endianness</strong>），在计算机科学领域中，指存储器中或在数字通信链路中，组成多字节的字的字节的排列顺序。<br><a id="more"></a><br>在几乎所有的机器上，多字节对象都被存储为连续的字节序列。例如在C语言中，一个类型为int的变量x地址为0x100，那么其对应地址表达式&amp;x的值为0x100。且x的四个字节将被存储在存储器的0x100, 0x101, 0x102, 0x103位置。</p>
@@ -129,6 +79,56 @@
         <tag>大端</tag>
         <tag>小端</tag>
         <tag>endian</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>结构体中的位域</title>
+    <url>/c/cpp-bit-field/</url>
+    <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>有些信息存储时，并不需要占用一整个完整的字节，而只需要占几个或一个二进制位。例如存放一个开关变量时，只需要用到0或1两种状态，用一位二进制位即可。所以，为了节省空间，C语言提供了一种叫<strong>位域</strong>的数据结构。<br><a id="more"></a></p>
+<h2 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h2><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    type [member_name] : width;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>元素</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>type</td>
+<td>只能为int, unsigned int, signed int三种类型</td>
+</tr>
+<tr>
+<td>member_name</td>
+<td>位域的名称</td>
+</tr>
+<tr>
+<td>width</td>
+<td>位域中位的数量。宽度必须小于或等于指定类型的位宽度</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>位域的使用：</p>
+<ol>
+<li>位域成员的类型必须指定为unsigned或int类型。</li>
+<li>一个位段必须存储在同一存储单元中，不能跨两个单元。如果第一个单元空间不能容纳下一个位段，则该空间不用，而从下一个单元起存放该位段。</li>
+<li>可以定义无名位域（形式：type :0;），无名位域用于填充内存布局，表示下一个位域从下一个内存边界开始。</li>
+<li>位域的长度不能大于存储单元的长度，也不能定义位域数组。</li>
+<li>位域可以用整型格式符输出。</li>
+<li>位域可以在数值表达式中引用，它会被系统自动地转换成整型数。</li>
+<li>位域定义的第一个位域长度不能为0。</li>
+</ol>
+<h2 id="例子"><a href="#例子" class="headerlink" title="例子"></a>例子</h2><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> &#123;</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">prev</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">quicklistNode</span> *<span class="title">next</span>;</span>             <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *zl;                      <span class="comment">// 64b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> sz;                        <span class="comment">// 32b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> count : <span class="number">16</span>;                <span class="comment">// 16b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> encoding : <span class="number">2</span>;              <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> container : <span class="number">2</span>;             <span class="comment">// 2b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> recompress : <span class="number">1</span>;            <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> attempted_compress : <span class="number">1</span>;    <span class="comment">// 1b</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> extra : <span class="number">10</span>;                <span class="comment">// 10b</span></span><br><span class="line">&#125; quicklistNode;                            <span class="comment">// = (256b / 8) = 32Byte</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;quicklistNode size: %d\n&quot;</span>, <span class="keyword">sizeof</span>(struct quicklistNode));</span><br><span class="line">    <span class="comment">// output :</span></span><br><span class="line">    <span class="comment">// quicklistNode size: 32</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>c++</category>
+      </categories>
+      <tags>
+        <tag>c</tag>
+        <tag>位域</tag>
+        <tag>bitfield</tag>
       </tags>
   </entry>
   <entry>
@@ -252,6 +252,21 @@
       </tags>
   </entry>
   <entry>
+    <title>gohbase二次封装</title>
+    <url>/golang/go-hbase-encapsulation/</url>
+    <content><![CDATA[<p>对 <a href="https://github.com/tsuna/gohbase">gohbase</a> 进行封装，提供简单的 API 接口以方便使用。<br><a id="more"></a></p>
+<figure class="highlight go"><table><tr><td class="code"><pre><span class="line"><span class="keyword">package</span> hbase</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">    <span class="string">&quot;context&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/golang/glog&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/tsuna/gohbase&quot;</span></span><br><span class="line">    <span class="string">&quot;github.com/tsuna/gohbase/hrpc&quot;</span></span><br><span class="line">    <span class="string">&quot;io&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> HbaseClient <span class="keyword">struct</span> &#123;</span><br><span class="line">    host        <span class="keyword">string</span></span><br><span class="line">    option      <span class="keyword">string</span></span><br><span class="line">    client      gohbase.Client</span><br><span class="line">    adminClient gohbase.AdminClient</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过工厂模式创建实例</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewHbaseClient</span><span class="params">(host <span class="keyword">string</span>)</span> *<span class="title">HbaseClient</span></span> &#123;</span><br><span class="line">    <span class="keyword">return</span> &amp;HbaseClient&#123;</span><br><span class="line">        host: host,</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 连接hbase</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">Connect</span><span class="params">()</span></span> &#123;</span><br><span class="line">    hb.client = gohbase.NewClient(hb.host)</span><br><span class="line">    hb.adminClient = gohbase.NewAdminClient(hb.host)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建表</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">CreateTable</span><span class="params">(table <span class="keyword">string</span>, families <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    createRequest := hrpc.NewCreateTable(context.Background(), []<span class="keyword">byte</span>(table), families)</span><br><span class="line">    <span class="keyword">if</span> err = hb.adminClient.CreateTable(createRequest); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[CreateTable] CreateTable error! table-&gt;%s, error-&gt;%v&quot;</span>, table, err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 删除表</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">DeleteTable</span><span class="params">(table <span class="keyword">string</span>)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    delRequest := hrpc.NewDeleteTable(context.Background(), []<span class="keyword">byte</span>(table))</span><br><span class="line">    <span class="keyword">if</span> err = hb.adminClient.DeleteTable(delRequest); err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[DeleteTable] DeleteTable error! table-&gt;%s, error-&gt;%v&quot;</span>, table, err)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 增</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">PutsByRowkey</span><span class="params">(table, rowKey <span class="keyword">string</span>, values <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">byte</span>)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    putRequest, err := hrpc.NewPutStr(context.Background(), table, rowKey, values)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[PutsByRowkey] NewPutStr error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    _, err = hb.client.Put(putRequest)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[PutsByRowkey] Put error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 改</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">UpdateByRowkey</span><span class="params">(table, rowKey <span class="keyword">string</span>, values <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">byte</span>)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    putRequest, err := hrpc.NewPutStr(context.Background(), table, rowKey, values)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[UpdateByRowkey] NewPutStr error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    _, err = hb.client.Put(putRequest)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[UpdateByRowkey] Put error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查rowkey</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">GetsByRowkey</span><span class="params">(table, rowKey <span class="keyword">string</span>)</span> <span class="params">(*hrpc.Result, error)</span></span> &#123;</span><br><span class="line">    getRequest, err := hrpc.NewGetStr(context.Background(), table, rowKey)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[GetsByRowkey] NewGetStr error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    res, err := hb.client.Get(getRequest)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[GetsByRowkey] Get error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> res, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 查rowkkey的某些列族</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">GetsByRowkeyCF</span><span class="params">(table, rowKey <span class="keyword">string</span>, families <span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">string</span>)</span> <span class="params">(*hrpc.Result, error)</span></span> &#123;</span><br><span class="line">    getRequest, err := hrpc.NewGetStr(context.Background(), table, rowKey, hrpc.Families(families))</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[GetsByRowkeyCF] NewGetStr error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    res, err := hb.client.Get(getRequest)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[GetsByRowkeyCF] Get error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> res, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 删</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">DeleteByRowkey</span><span class="params">(table, rowKey <span class="keyword">string</span>, value <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">map</span>[<span class="keyword">string</span>][]<span class="keyword">byte</span>)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">    delRequest, err := hrpc.NewDelStr(context.Background(), table, rowKey, value)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[DeleteByRowkey] NewDelStr error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    _, err = hb.client.Delete(delRequest)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[DeleteByRowkey] Delete error! table-&gt;%s, rowKey-&gt;%s, error-&gt;%v&quot;</span>, table, rowKey, err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 扫描</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">ScanByTable</span><span class="params">(table, startRow, stopRow <span class="keyword">string</span>)</span> <span class="params">([]*hrpc.Result, error)</span></span> &#123;</span><br><span class="line">    scanRequest, err := hrpc.NewScanRangeStr(context.Background(), table, startRow, stopRow)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        glog.Errorf(<span class="string">&quot;[ScanByTable] NewScanRangeStr error! table-&gt;%s, startRow-&gt;%s, endRow-&gt;%s, error-&gt;%v&quot;</span>, table, startRow, stopRow, err)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</span><br><span class="line">    &#125;</span><br><span class="line">    scan := hb.client.Scan(scanRequest)</span><br><span class="line">    <span class="keyword">var</span> res []*hrpc.Result</span><br><span class="line">    <span class="keyword">for</span> &#123;</span><br><span class="line">        getRsp, err := scan.Next()</span><br><span class="line">        <span class="keyword">if</span> err == io.EOF || getRsp == <span class="literal">nil</span> &#123;</span><br><span class="line">            <span class="keyword">break</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">            glog.Errorf(<span class="string">&quot;[ScanByTable] scan.Next error! table-&gt;%s, error-&gt;%v&quot;</span>, table, err)</span><br><span class="line">        &#125;</span><br><span class="line">        res = <span class="built_in">append</span>(res, getRsp)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> res, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(hb *HbaseClient)</span> <span class="title">IsExistRowKey</span><span class="params">(table, rowKey <span class="keyword">string</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">    res, err := hb.GetsByRowkey(table, rowKey)</span><br><span class="line">    <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">len</span>(res.Cells) &gt; <span class="number">0</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>golang</category>
+      </categories>
+      <tags>
+        <tag>hbase</tag>
+        <tag>gohbase</tag>
+        <tag>go</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>I/O模型浅析</title>
     <url>/net/net-io-model/</url>
     <content><![CDATA[<h2 id="I-O概念"><a href="#I-O概念" class="headerlink" title="I/O概念"></a>I/O概念</h2><p>众所周知，在 Linux 的世界中一切皆为文件，而文件的本质其实就是一串二进制流，不管是 socket 还是 FIFO、管道、终端等，对于Linux来说，一切都是文件、一切都是流。在信息交换过程中，我们对这些流进行收/发操作，这一过程简称为 I/O 操作（input and output）。<br><a id="more"></a></p>
@@ -273,10 +288,34 @@
   <entry>
     <title>select/poll/epoll区别与用法</title>
     <url>/net/net-io-multiplexing/</url>
-    <content><![CDATA[<h2 id="多路复用I-O"><a href="#多路复用I-O" class="headerlink" title="多路复用I/O"></a>多路复用I/O</h2><p>在服务器的编程中经常会需要构造高性能的 I/O 模型，最常用的就是多路复用I/O 模型。<br>多路复用的本质是同步非阻塞 I/O，多路复用的优势并不是单个连接处理的更快，而是在于能处理更多的链接。<br><a id="more"></a><br>在服务端的网络 I/O 编程过程中，需要同时处理多个客户端的数据时，可以利用多线程或者 I/O 多路复用技术进行处理。<br>在<a href="../net-io-model">《I/O模型浅析》</a>中已经简单介绍过多路复用I/O，接下来说一下</p>
-<h3 id="epoll"><a href="#epoll" class="headerlink" title="epoll"></a>epoll</h3><p>epoll 的源码在 Linux kernel 源码中，想要看源码需要下载<br>官方链接： <a href="https://www.kernel.org/">https://www.kernel.org/</a><br>如果不能科学上网，下载速度将会很慢，可以使用上海交大的源下载：<a href="http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/">http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/</a></p>
-<p><img src="/net/net-io-multiplexing/kernel.png" alt="kernel_code"></p>
-]]></content>
+    <content><![CDATA[<p>在服务器的编程中经常会需要构造高性能的 I/O 模型，最常用的就是多路复用 I/O 模型。<br>多路复用的本质是同步非阻塞 I/O，多路复用的优势并不是单个连接处理的更快，而是在于能处理更多的链接。<br><a id="more"></a><br>在服务端的网络 I/O 编程过程中，需要同时处理多个客户端的数据时，可以利用多线程或者 I/O 多路复用技术进行处理。<br>在<a href="../net-io-model">《I/O模型浅析》</a>中已经简单介绍过多路复用I/O，接下来介绍 select、poll 和 epoll。<br>这三者的源码在 Linux kernel 源码中，想要查看源码需要下载，两种下载方式：</p>
+<ol>
+<li>官方链接： <a href="https://www.kernel.org/">https://www.kernel.org/</a></li>
+<li>如果不能科学上网，下载速度将会很慢，可以使用上海交大的源下载：<a href="http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/">http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/</a></li>
+</ol>
+<p><img src="/net/net-io-multiplexing/kernel.png" alt="kernel_code"><br>因为我使用的系统是 <code>CentOS release 6.8 (Final)</code>，其中 linux 内核版本为 <code>2.6.32</code>，所以我下载了 <code>linux-2.6.32.9.tar.gz</code>。<br>其它版本可自行选择下载。</p>
+<hr>
+<h2 id="select"><a href="#select" class="headerlink" title="select"></a>select</h2><h3 id="select函数原型"><a href="#select函数原型" class="headerlink" title="select函数原型"></a>select函数原型</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 需要包含的头文件</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/select.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/time.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">select</span><span class="params">(<span class="keyword">int</span> fd_max, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>具体参数详解：</p>
+<ul>
+<li>fd_max: 整数值，指集合中所有文件描述符的范围，即所有文件描述符的最大值加1。</li>
+<li>readfds: 指向 fd_set 结构的指针，文件描述符集合，检查该组文件描述符的可读性。</li>
+<li>writefds: 指向 fd_set 结构的指针，文件描述符集合，检查该组文件描述符的可写性。</li>
+<li>exceptfds: 指向 fd_set 结构的指针，文件描述符集合，检查该组文件描述符的异常条件。</li>
+<li>timeout: 设定 select 的超时时间，其中：<ul>
+<li>值为NULL，则将 select() 设置为阻塞状态，当监视的文件描述符集合中的某一个描述符发生变化才会返回结果并向下执行。</li>
+<li>值等于0，则将 select() 置为非阻塞状态，执行 select() 后立即返回，无论文件描述符是否发生变化。</li>
+<li>值大于0，则将select()函数的超时时间设为这个值，在超时时间内阻塞，超时后返回结果。</li>
+</ul>
+</li>
+</ul>
+<p>函数返回：</p>
+<ul>
+<li>正数：表示发生变化的文件描述符数量。</li>
+<li>0：select 超时。</li>
+<li>-1：发生错误，将所有文件描述符集合清0，并通过 errno 输出错误详情。</li>
+</ul>
+<h2 id><a href="#" class="headerlink" title="#"></a>#</h2>]]></content>
       <categories>
         <category>net</category>
       </categories>
