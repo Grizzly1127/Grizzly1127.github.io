@@ -1,0 +1,140 @@
+---
+title: C/C++ 内存大小端模式
+date: 2020-03-26 10:56:41
+tags: 
+- c++
+- 大端
+- 小端
+- endian
+categories:
+- c++
+copyright: true
+---
+
+## 概念
+
+**维基百科：**  
+字节顺序，又称端序或尾序（英语：**Endianness**），在计算机科学领域中，指存储器中或在数字通信链路中，组成多字节的字的字节的排列顺序。
+<!-- more -->
+在几乎所有的机器上，多字节对象都被存储为连续的字节序列。例如在C语言中，一个类型为int的变量x地址为0x100，那么其对应地址表达式&x的值为0x100。且x的四个字节将被存储在存储器的0x100, 0x101, 0x102, 0x103位置。
+
+字节的排列方式有两个通用规则。例如，一个多位的整数，按照存储地址从低到高排序的字节中，如果该整数的最低有效字节（类似于最低有效位）在最高有效字节的前面，则称小端序；反之则称大端序。在网络应用中，字节序是一个必须被考虑的因素，因为不同机器类型可能采用不同标准的字节序，所以均按照网络标准转化。
+
+例如假设上述变量x类型为int，位于地址0x100处，它的值为0x01234567，地址范围为0x100~0x103字节，其内部排列顺序依赖于机器的类型。大端法从首位开始将是：0x100: 01, 0x101: 23,..。而小端法将是：0x100: 67, 0x101: 45,..。
+
+**百度百科：**  
+大端模式，是指数据的高字节保存在内存的低地址中，而数据的低字节保存在内存的高地址中，这样的存储模式有点儿类似于把数据当作字符串顺序处理：地址由小向大增加，而数据从高位往低位放；这和我们的阅读习惯一致。
+
+小端模式，是指数据的高字节保存在内存的高地址中，而数据的低字节保存在内存的低地址中，这种存储模式将地址的高低和数据位权有效地结合起来，高地址部分权值高，低地址部分权值低。
+
+## 区分
+
+以unsigned int value = 0x12345678为例：
+
+| 内存地址       | 小端模式（Little-Endian） | 大端模式（Big-Endian）|
+|---            |---                       |---                   |
+|0x100（低地址） |0x78                      |0x12                  |
+|0x101          |0x56                      |0x34                  |
+|0x102          |0x34                      |0x56                  |
+|0x103（高地址） |0x12                      |0x78                  |
+
+## redis中的大小端
+
+为了兼容不同目标机的字节顺序，redis统一采用了小端字节序的方式存储。对于字节序的转码，redis提供了16byte、32byte、64byte字节的转换，代码在endianconv.c和endianconv.h中。代码很简单，看一下就能明白。  
+贴上代码：  
+**endianconv.h**:
+
+```c
+#include "config.h"
+#include <stdint.h>
+
+void memrev16(void *p);
+void memrev32(void *p);
+void memrev64(void *p);
+uint16_t intrev16(uint16_t v);
+uint32_t intrev32(uint32_t v);
+uint64_t intrev64(uint64_t v);
+
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+#define memrev16ifbe(p) ((void)(0))
+#define memrev32ifbe(p) ((void)(0))
+#define memrev64ifbe(p) ((void)(0))
+#define intrev16ifbe(v) (v)
+#define intrev32ifbe(v) (v)
+#define intrev64ifbe(v) (v)
+#else
+#define memrev16ifbe(p) memrev16(p)
+#define memrev32ifbe(p) memrev32(p)
+#define memrev64ifbe(p) memrev64(p)
+#define intrev16ifbe(v) intrev16(v)
+#define intrev32ifbe(v) intrev32(v)
+#define intrev64ifbe(v) intrev64(v)
+#endif
+
+#if (BYTE_ORDER == BIG_ENDIAN)
+#define htonu64(v) (v)
+#define ntohu64(v) (v)
+#else
+#define htonu64(v) intrev64(v)
+#define ntohu64(v) intrev64(v)
+#endif
+
+#ifdef REDIS_TEST
+int endianconvTest(int argc, char *argv[]);
+#endif
+```
+
+**endianconv.c**:
+
+``` c
+void memrev16(void *p) {
+    unsigned char *x = p, t;
+
+    t = x[0];
+    x[0] = x[1];
+    x[1] = t;
+}
+
+void memrev32(void *p) {
+    unsigned char *x = p, t;
+
+    t = x[0];
+    x[0] = x[3];
+    x[3] = t;
+    t = x[1];
+    x[1] = x[2];
+    x[2] = t;
+}
+
+void memrev64(void *p) {
+    unsigned char *x = p, t;
+
+    t = x[0];
+    x[0] = x[7];
+    x[7] = t;
+    t = x[1];
+    x[1] = x[6];
+    x[6] = t;
+    t = x[2];
+    x[2] = x[5];
+    x[5] = t;
+    t = x[3];
+    x[3] = x[4];
+    x[4] = t;
+}
+
+uint16_t intrev16(uint16_t v) {
+    memrev16(&v);
+    return v;
+}
+
+uint32_t intrev32(uint32_t v) {
+    memrev32(&v);
+    return v;
+}
+
+uint64_t intrev64(uint64_t v) {
+    memrev64(&v);
+    return v;
+}
+```
