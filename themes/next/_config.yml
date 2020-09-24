@@ -124,6 +124,7 @@ menu:
   c++: /categories/c || copyright
   golang: /categories/golang || google
   vim: /categories/vim || vimeo-v
+  计算机网络: /categories/net || th
   archives: /archives/ || archive
   #schedule: /schedule/ || fa fa-calendar
   #sitemap: /sitemap.xml || fa fa-sitemap
