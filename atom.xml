@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2020-09-24T07:53:50.144Z</updated>
+  <updated>2020-09-24T07:55:20.299Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -21,15 +21,12 @@
     <link href="http://example.com/net/net-io-multiplexing/"/>
     <id>http://example.com/net/net-io-multiplexing/</id>
     <published>2020-09-24T02:52:36.000Z</published>
-    <updated>2020-09-24T07:53:50.144Z</updated>
+    <updated>2020-09-24T07:55:20.299Z</updated>
     
-    <content type="html"><![CDATA[<h2 id="多路复用I-O"><a href="#多路复用I-O" class="headerlink" title="多路复用I/O"></a>多路复用I/O</h2><p>在服务器的编程中经常会需要构造高性能的 I/O 模型，最常用的就是多路复用I/O 模型。<br>多路复用的本质是同步非阻塞 I/O，多路复用的优势并不是单个连接处理的更快，而是在于能处理更多的链接。</p><p>在服务端的网络 I/O 编程过程中，需要同时处理多个客户端的数据时，可以利用多线程或者 I/O 多路复用技术进行处理。<br>在<a href="../net-io-model">《I/O模型浅析》</a>中已经简单介绍过多路复用I/O，接下来说一下</p><h3 id="epoll"><a href="#epoll" class="headerlink" title="epoll"></a>epoll</h3><p>epoll 的源码在 Linux kernel 源码中，想要看源码需要下载<br>官方链接： <a href="https://www.kernel.org/">https://www.kernel.org/</a><br>如果不能科学上网，下载速度将会很慢，可以使用上海交大的源下载：<a href="http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/">http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/</a></p><p><img src="/net/net-io-multiplexing/kernel.png" alt="kernel_code"></p>]]></content>
+    <content type="html"><![CDATA[<h2 id="多路复用I-O"><a href="#多路复用I-O" class="headerlink" title="多路复用I/O"></a>多路复用I/O</h2><p>在服务器的编程中经常会需要构造高性能的 I/O 模型，最常用的就是多路复用I/O 模型。<br>多路复用的本质是同步非阻塞 I/O，多路复用的优势并不是单个连接处理的更快，而是在于能处理更多的链接。<br><a id="more"></a><br>在服务端的网络 I/O 编程过程中，需要同时处理多个客户端的数据时，可以利用多线程或者 I/O 多路复用技术进行处理。<br>在<a href="../net-io-model">《I/O模型浅析》</a>中已经简单介绍过多路复用I/O，接下来说一下</p><h3 id="epoll"><a href="#epoll" class="headerlink" title="epoll"></a>epoll</h3><p>epoll 的源码在 Linux kernel 源码中，想要看源码需要下载<br>官方链接： <a href="https://www.kernel.org/">https://www.kernel.org/</a><br>如果不能科学上网，下载速度将会很慢，可以使用上海交大的源下载：<a href="http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/">http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/</a></p><p><img src="/net/net-io-multiplexing/kernel.png" alt="kernel_code"></p>]]></content>
     
     
-      
-      
-    <summary type="html">&lt;h2 id=&quot;多路复用I-O&quot;&gt;&lt;a href=&quot;#多路复用I-O&quot; class=&quot;headerlink&quot; title=&quot;多路复用I/O&quot;&gt;&lt;/a&gt;多路复用I/O&lt;/h2&gt;&lt;p&gt;在服务器的编程中经常会需要构造高性能的 I/O 模型，最常用的就是多路复用I/O 模型。&lt;br&gt;多路</summary>
-      
+    <summary type="html">&lt;h2 id=&quot;多路复用I-O&quot;&gt;&lt;a href=&quot;#多路复用I-O&quot; class=&quot;headerlink&quot; title=&quot;多路复用I/O&quot;&gt;&lt;/a&gt;多路复用I/O&lt;/h2&gt;&lt;p&gt;在服务器的编程中经常会需要构造高性能的 I/O 模型，最常用的就是多路复用I/O 模型。&lt;br&gt;多路复用的本质是同步非阻塞 I/O，多路复用的优势并不是单个连接处理的更快，而是在于能处理更多的链接。&lt;br&gt;&lt;/p&gt;</summary>
     
     
     
