@@ -11,9 +11,11 @@ categories:
 上一篇[《IO多路复用 - select》](../net-io-multiplexing-select)介绍了 select。接下来我们来解析一下 poll。
 <!-- more -->
 
-## poll
+## poll介绍
 
-### poll函数原型
+### poll相关函数
+
+通过 `man poll` 命令可以查看 poll 的函数原型如下：
 
 ```c
 #include <poll.h>
@@ -165,6 +167,7 @@ int main() {
             }
         }
     }
+    return 0;
 }
 ```
 

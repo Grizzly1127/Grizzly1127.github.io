@@ -24,21 +24,24 @@ categories:
 
 ---
 
-## select
+## select介绍
 
-### select函数原型
+### select相关函数
+
+通过 `man select` 命令可以查看 select 的函数原型如下：
 
 ```c
 // 需要包含的头文件
 #include <sys/select.h>
 #include <sys/time.h>
+#include <unistd.h>
 
-int select(int fd_max, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+int select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
 ```
 
 具体参数详解：
 
-* fd_max: 整数值，指集合中所有文件描述符的范围，即所有文件描述符的最大值加1。
+* nfds: 整数值，指集合中所有文件描述符的范围，即所有文件描述符的最大值加1。
 * readfds: 指向 fd_set 结构的指针，文件描述符集合，检查该组文件描述符的可读性。
 * writefds: 指向 fd_set 结构的指针，文件描述符集合，检查该组文件描述符的可写性。
 * exceptfds: 指向 fd_set 结构的指针，文件描述符集合，检查该组文件描述符的异常条件。
