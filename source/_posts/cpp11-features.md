@@ -9,6 +9,8 @@ categories:
 copyright: true
 ---
 
+在看《C++ Primer Plus》的时候，了解到了很多 C++11 的新特性，将其记录下来，一是能加深印象，二是日后随时随地都能方便查看。
+
 ## 1. 新功能
 
 ### 1.1 新类型
@@ -564,3 +566,418 @@ C++11 新增Lambda函数，其格式如下：
 * 函数体和普通函数一样，除了可以使用参数之外，还可以使用捕获的变量。
 
 从C++11开始，Lambda被广泛用在STL中，比如foreach。与函数指针比起来，函数指针有巨大的缺陷：1.函数定义在别处，阅读起来很困难；2.使用函数指针，很可能导致编译器不对其进行inline优化，循环次数太多时，函数指针和Lambda比起来性能差距太大。函数2指针不能应用在一些运行时才能决定的状态，在没有C++11时，只能用仿函数。使得学习STL算法的代价大大降低。
+
+## 5. 包装器
+
+C++ 提供了多个包装器（wrapper，也叫适配器[adapter]）。这些对象用于给其他编程接口提供更一致或更适合的接口。C++11 提供了模板 bind、men_fn 和 reference_wrapper 以及包装器 function。
+
+### 5.1 包装器 function 及模板的低效性
+
+请看以下代码行：
+
+```c++
+answer = ef(q);
+```
+
+ef 是什么呢？它可以是函数名、函数指针、函数对象或有名称的 Lambda 表达式。所有这些都是可调用的类型（callable type）。鉴于可调用的类型如此丰富，这可能导致模板的效率极低。为明白这一点，来看一个简单的案例。
+首先，在头文件中定义一些模板，如下：
+**somedef.h**
+
+```c++
+#include <iostream>
+
+template <typename T, typename F>
+T use_f(T v, F f)
+{
+    static int count = 0;
+    count++;
+    std::cout << "  use_f count = " << count
+              << ", &count = " << &count << std::endl;
+    return f(v);
+}
+
+class Fp
+{
+private:
+    double z_;
+public:
+    Fp(double z = 1.0) : z_(z) {}
+    double operator() (double p) { return z_ * p; }
+};
+
+class Fq
+{
+private:
+    double z_;
+public:
+    Fq(double z = 1.0) : z_(z) {}
+    double operator() (double p) { return z_ + p; }
+};
+```
+
+模板 use_f 使用参数 f 表示调用类型：
+
+```c++
+return f(v);
+```
+
+接下来如下调用模板函数 use_f() 6次。
+**callable.cpp**
+
+```c++
+#include "somedef.h"
+#include <iostream>
+
+double dub(double x) { return 2.0 * x; }
+double square(double x) { return x * x; }
+
+int main() {
+    using std::cout;
+    using std::endl;
+
+    double y = 1.21;
+    cout << "Function pointer dub:\n";
+    cout << "  " << use_f(y, dub) << endl;
+    cout << "Function pointer square:\n";
+    cout << "  " << use_f(y, square) << endl;
+    cout << "Function pointer Fp:\n";
+    cout << "  " << use_f(y, Fp(5.0)) << endl;
+    cout << "Function pointer Fq:\n";
+    cout << "  " << use_f(y, Fq(5.0)) << endl;
+    cout << "Lambda expression 1:\n";
+    cout << "  " << use_f(y, [](double u) { return u*u; }) << endl;
+    cout << "Lambda expression 2:\n";
+    cout << "  " << use_f(y, [](double u) { return u+u/2.0; }) << endl;
+    return 0;
+}
+```
+
+在每次调用中，模板参数 T 都被设置为类型 double。模板参数 F 呢？每次调用时，F 都接受一个 double 值并返回一个 double 值，因此在6次 use_f() 调用中，好像 F 的类型都相同，因此只会实例化模板一次。
+但正如下面的输出表明的，这种想法太天真了：
+
+```text
+Function pointer dub:
+  use_f count = 1, &count = 0x6018cc
+  2.42
+Function pointer square:
+  use_f count = 2, &count = 0x6018cc
+  1.4641
+Function pointer Fp:
+  use_f count = 1, &count = 0x6018d0
+  6.05
+Function pointer Fq:
+  use_f count = 1, &count = 0x6018d4
+  6.21
+Lambda expression 1:
+  use_f count = 1, &count = 0x6018c4
+  1.4641
+Lambda expression 2:
+  use_f count = 1, &count = 0x6018c8
+  1.815
+```
+
+模板函数 use_f() 有一个静态成员 count，可根据它的地址确定模板实例化了多少次。**有5个不同的地址，这表明模板 use_f() 有5个不同的实例化**。
+为了解其中的原因，请考虑编译器如何判断模板参数 F 的类型。首先，来看下面的调用：
+
+```c++
+use_f(y, dub);
+```
+
+其中 dub 是一个函数的名称，该函数接受一个 double 参数并返回一个 double 值。函数名是指针，因此参数 F 的类型为 `double(*)(double)`：一个指向这样的函数的指针。
+下一个调用如下：
+
+```c++
+use_f(y, square);
+```
+
+第二个参数的类型也是 `double(*)(double)`，因此该调用使用的 use_f() 实例化与第一个调用相同。
+在接下来的 use_f() 调用中，第二个参数为对象，F 的类型分别为 Fp 和 Fq，因为将为这些 F 值实例化 use_f() 模板两次。最后，最后两个调用将 F 的类型设置为编译器为 Lambda 表达式使用的类型。
+
+### 5.2 修复问题
+
+注意在 `callable.cpp` 中的函数指针、函数对象和 Lambda 表达式有一个相同的地方，它们都接受一个 double 参数并返回一个 double 值。可以说它们的调用特征标（call signature）相同，因此这6个实例的调用特征标都是 `double(double)`。
+模板 function 它从调用特征标的角度定义了一个对象，可用于包装调用特征标相同的函数指针、函数对象和 Lambda 表达式。例如，下面的声明创建了一个名为 fdci 的 function 对象，它接受一个 char 参数和一个 int 参数，并返回一个 double 值：
+
+```c++
+std::function<double(char, int)> fdci;
+```
+
+然后，可以将接受一个 char 参数和一个 int 参数，并返回 double 值的任何函数指针、函数对象或 Lambda 表达式赋给它。
+如 `callable.cpp` 中，所有可调用参数的调用特征标都相同：`double(double)`。因此，可以使用 `std::function<double(double)>` 创建包装器，以达到 use_f() 只被实例化一次的目的，修改的程序清单如下：
+在 somedef.h 中，将模板 use_f() 第二个参数声明为 function 包装器对象，如下所示：
+
+```c++
+...
+#include <functional> // 包装器 function 是在头文件 functional 中声明的
+
+template <typename T>
+T use_f(T v, std::function<T(T)> f)
+{
+    static int count = 0;
+    count++;
+    std::cout << "  use_f count = " << count
+              << ", &count = " << &count << std::endl;
+    return f(v);
+}
+
+...
+```
+
+修改 callable.cpp 中的调用方式如下：
+
+```c++
+#include "somedef.h"
+#include <functional> // 包装器 function 是在头文件 functional 中声明的
+#include <iostream>
+
+double dub(double x) { return 2.0 * x; }
+double square(double x) { return x * x; }
+
+int main() {
+    using std::cout;
+    using std::endl;
+    using std::function;
+
+    double y = 1.21;
+    // 调用方式一：
+    typedef function<double(double)> fdd;
+    cout << "Function pointer dub:\n";
+    cout << "  " << use_f(y, fdd(dub)) << endl;
+    cout << "Function pointer square:\n";
+    cout << "  " << use_f(y, fdd(square)) << endl;
+    cout << "Function pointer Fp:\n";
+    cout << "  " << use_f(y, fdd(Fp(5.0))) << endl;
+    cout << "Function pointer Fq:\n";
+    cout << "  " << use_f(y, fdd(Fq(5.0))) << endl;
+    cout << "Lambda expression 1:\n";
+    cout << "  " << use_f(y, fdd([](double u) { return u*u; })) << endl;
+    cout << "Lambda expression 2:\n";
+    cout << "  " << use_f(y, fdd([](double u) { return u+u/2.0; })) << endl;
+    cout << "\n\n";
+    // 调用方式二：
+    /*
+     * 参数 dub、Fp(5.0) 等本身的类型并不是 function<double(double)>，因此在 use_f 后面使用了 <double>
+     * 来指出所需的具体化。这样，T 被设置为 double，而 std::function<T(T)> 变成了 std::function<double(double)>
+     */
+    cout << "Function pointer dub:\n";
+    cout << "  " << use_f<double>(y, dub) << endl;
+    cout << "Function pointer square:\n";
+    cout << "  " << use_f<double>(y, square) << endl;
+    cout << "Function pointer Fp:\n";
+    cout << "  " << use_f<double>(y, Fp(5.0)) << endl;
+    cout << "Function pointer Fq:\n";
+    cout << "  " << use_f<double>(y, Fq(5.0)) << endl;
+    cout << "Lambda expression 1:\n";
+    cout << "  " << use_f<double>(y, [](double u) { return u*u; }) << endl;
+    cout << "Lambda expression 2:\n";
+    cout << "  " << use_f<double>(y, [](double u) { return u+u/2.0; }) << endl;
+    return 0;
+}
+```
+
+下面是该程序的输出：
+
+```text
+Function pointer dub:
+  use_f count = 1, &count = 0x6054c0
+  2.42
+Function pointer square:
+  use_f count = 2, &count = 0x6054c0
+  1.4641
+Function pointer Fp:
+  use_f count = 3, &count = 0x6054c0
+  6.05
+Function pointer Fq:
+  use_f count = 4, &count = 0x6054c0
+  6.21
+Lambda expression 1:
+  use_f count = 5, &count = 0x6054c0
+  1.4641
+Lambda expression 2:
+  use_f count = 6, &count = 0x6054c0
+  1.815
+
+
+Function pointer dub:
+  use_f count = 7, &count = 0x6054c0
+  2.42
+Function pointer square:
+  use_f count = 8, &count = 0x6054c0
+  1.4641
+Function pointer Fp:
+  use_f count = 9, &count = 0x6054c0
+  6.05
+Function pointer Fq:
+  use_f count = 10, &count = 0x6054c0
+  6.21
+Lambda expression 1:
+  use_f count = 11, &count = 0x6054c0
+  1.4641
+Lambda expression 2:
+  use_f count = 12, &count = 0x6054c0
+  1.815
+```
+
+从上述输出可知，count 的地址都相同，而 count 的值表明，use_f() 被调用了12次，这表明只有一个实例，并调用了该实例12次，这缩小了可执行代码的规模。
+
+### 5.3 bind
+
+很多 STL 算法都使用函数对象 一一 也叫函数符（functor）。函数符是可以以函数方式与（）结合使用的任意对象。这包括函数名、指向函数的指针和重载了()运算符的类对象（即定义了函数 operator()() 的类）。
+例如，可以像这样定义一个对象：
+
+```c++
+class Linear
+{
+private:
+    double slope;
+    double y0;
+public:
+    Linear(double sl_ = 1, double y_ = 0)
+        : slope(sl_), y0(y_) {}
+    double operator()(double x) { return y0 + slope * x; }
+};
+```
+
+这样，重载的()运算符将使得能够像函数那样使用 Linear 对象：
+
+```c++
+Linear f1;
+Linear f2(2.5, 10.0);
+double y1 = f1(12.5);
+double y2 = f2(0.4);
+```
+
+函数符的概念如下：
+
+* 生成器（generator）是不用参数就可以调用的函数符。
+* 一元函数（unary function）是用一个参数就可以调用的函数符。
+* 二元函数（binary function）使用两个参数可以调用的函数符。
+
+在 C++98 中有两个函数 bind1st 和 bind2nd，它们将二元函数转换为一元函数，区别就是 bind1st 用于绑定第一个参数，bind2nd 用于绑定第二个参数，都只能绑定一个参数。
+C++98 提供的这些特性已经由于 C++11 的到来而过时，由于各种限制，我们经常使用 bind 而非 bind1st 和 bind2nd。
+**过时的 bind1st 和 bind2nd 的用法：**
+
+```c++
+vector<int> coll {1, 2, 3, 4, 5, 11, 22, 5, 12};
+// 查找元素值大于10的个数
+int count = std::count_if(coll.begin(), coll.end(),              // 范围
+                          std::bind1st(std::less<int>(), 10));   // 将10绑定到 std::less 的第一个参数，也就是10小于......
+// 查找第一个元素值大于10的元素
+std::find_if(coll.begin(), coll.end(),              // 范围
+             std::bind2nd(std::greater<int>(), 10); // 将10绑定到 std::greater 的第二个参数，也就是......大于10
+```
+
+**C++11 中的 bind 的用法：**
+
+```c++
+// 计算 x + 10 的结果：
+// function object 内部调用 plus<>（也就是 operator+），以占位符 placeholders_1 为第一个参数，
+// 以10位第二个参数，占位符_1表示实际传入此表达式的第一实参，返回“实参+10”的结果值
+auto plus10 = std::bind(std::plus<int>(), std::placeholders::_1, 10);
+std::cout << plus10(7) << std::endl; // 输出 17
+
+// 计算 (x + 10) * 2 的结果：
+auto mul2 = std::bind(std::multiplies<int>(),
+                     std::bind(std::plus<int>(), std::placeholders::_1, 10),
+                     2);
+std::cout << mul2(7) << std::endl; // 输出 289
+```
+
+注意，上面使用的 less&lt;int&gt;(), gearter&lt;int&gt;(), plus&lt;int&gt;() 以及 multiplies&lt;int&gt;() 等都是 C++ 预定义的 functor。因此我们可以知道，bind 可以把参数绑定到函数对象上。
+C++98 的 bind1st 和 bind2nd 局限在于只能绑定一个参数，而 std::bind 可以绑定任意多个参数，使用起来更加方便，如下：
+
+```c++
+#include <iostream>
+#include <functional>
+
+void fn(int n1, int n2, int n3) {
+    std::cout << n1 << " " << n2 << " " << n3 << std::endl;
+}
+
+int fn2() {
+    std::cout << "fn2 has called.\n";
+    return -1;
+}
+
+int main()
+{
+    using namespace std::placeholders;
+    auto bind_test1 = std::bind(fn, 1, 2, 3);
+    auto bind_test2 = std::bind(fn, _1, _2, _3);
+    auto bind_test3 = std::bind(fn, 0, _1, _2);
+    auto bind_test4 = std::bind(fn, _2, 0, _1);
+
+    bind_test1();//输出1 2 3
+    bind_test2(3, 8, 24);//输出3 8 24
+    bind_test2(1, 2, 3, 4, 5);//输出1 2 3，4和5会被丢弃
+    bind_test3(10, 24);//输出0 10 24
+    bind_test3(10, fn2());//输出0 10 -1
+    bind_test3(10, 24, fn2());//输出0 10 24，fn2会被调用，但其返回值会被丢弃
+    bind_test4(10, 24);//输出24 0 10
+    return 0;
+}
+```
+
+除此之外，bind 还可以把参数绑定到普通函数、类成员函数、甚至数据成员等。
+
+**std::bind 绑定普通函数：**
+
+```c++
+double Divide(double x, double y) { return x/y; }
+auto fn = std::bind(&Divide, std::placeholders::_1, 2); // 绑定第二个参数
+std::cout << fn(10) << std::endl; // 输出5
+```
+
+**std::bind 绑定一个成员函数：**
+
+```c++
+struct Foo {
+    void print_sum(int n1, int n2)
+    {
+        std::cout << n1 + n2 << '\n';
+    }
+    int data = 10;
+};
+int main()
+{
+    Foo foo;
+    auto f = std::bind(&Foo::print_sum, &foo, 95, std::placeholders::_1);
+    f(5); // 输出100
+}
+```
+
+**std::bind 绑定一个引用参数：**
+
+```c++
+#include <iostream>
+#include <functional>
+#include <vector>
+#include <algorithm>
+#include <sstream>
+
+ostream & print(ostream &os, const string& s, char c)
+{
+    os << s << c;
+    return os;
+}
+
+int main()
+{
+    vector<string> words{"helo", "world", "this", "is", "C++11"};
+    char c = ' ';
+    ostringstream os;
+    // ostream不能拷贝，若希望传递给bind一个对象，
+    // 而不拷贝它，就必须使用标准库提供的ref函数
+    for_each(words.begin(), words.end(),
+             bind(print, std::ref(os), std::placeholders::_1, c)); // 此处可以不用显示的指定&print，普通函数做实参时，会隐式转换为函数指针
+    cout << os.str() << endl;
+}
+```
+
+**使用 bind 要注意的地方：**
+
+* bind 预先绑定的参数需要传具体的变量或值进去，对于预先绑定的参数，是 `pass-by-value` 的。除非该参数被 std::ref 或者 std::cref 包装，才 `pass-by-reference`。
+* 对于不事先绑定的参数，需要传 std::placeholders 进去，从_1开始，依次递增。placeholder 是 `pass-by-reference` 的。
+* bind 的返回值是可调用实体，可以直接赋给 std::function 对象。
+* 对于绑定的指针、引用类型的参数，使用者需要保证在可调用实体调用之前，这些参数是可用的。
+* 类的this可以通过对象或者指针来绑定。
