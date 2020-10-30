@@ -23,7 +23,7 @@ copyright: true
 **节点更新：** 和节点删除的原理差不多，如果跳跃表中没有该数据，则进行插入操作。  
 
 跳跃表的结构如下：  
-![zskiplist结构](zskiplist.png)  
+![zskiplist.png](https://i.loli.net/2020/10/29/ita6M2wrNWv4Ufm.png)
 
 | 函数          | 作用          | 时间复杂度 |
 | ---           |---           |---        |

@@ -33,14 +33,14 @@ typedef struct redisObject {
 所以当数据长度小于44时，用EMBSTR编码，否则使用OBJ_ENCODING_RAW编码。如果一个字符串对象保存的是整数值，并且可以用long类型来表示，则将字符串对象转为long，设置编码类型为OBJ_ENCODING_INT。  
 
 下面让我们看看实例：  
-![t_string](t_string.png)  
+![t_string.png](https://i.loli.net/2020/10/29/FGenSOc6ahzXitD.png)
 
 INT和EMBSTR编码的字符串对象在条件满足的情况下，会转换为RAW编码。  
 比如INT编码对象在执行APPEND命令追加一段字符串时，将会转换为RAW编码，因为追加操作只支持字符串值，所以会把之前保存的整数值转为字符串后，再执行追加操作，这时就会转为RAW编码。  
-![int_to_raw](t_string_int_to_raw.png)  
+![t_string_int_to_raw.png](https://i.loli.net/2020/10/29/QrxyXTWqIAVBw68.png)
 
 而redis没有提供对EMBSTR编码的字符串对象的修改操作，所以当进行追加操作时，也会先转为RAW编码，然后再进行追加。  
-![embstr_to_raw](t_string_embstr_to_raw.png)  
+![t_string_embstr_to_raw.png](https://i.loli.net/2020/10/29/o6jMV3wTs8alZdv.png)
 
 |命令|功能|时间复杂度|
 |---|---|---|

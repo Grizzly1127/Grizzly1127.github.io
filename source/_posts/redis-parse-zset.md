@@ -19,7 +19,7 @@ zset对象底层编码方式有两种，`ziplist`或`skiplist`。
 <!-- more -->
 
 ziplist的结构如下：  
-![zset_ziplist](t_zset_ziplist.png)  
+![t_zset_ziplist.png](https://i.loli.net/2020/10/29/LZnqe3lM8a5zS6R.png)
 如上图，集合的元素由两个紧挨着的节点来保存，第一个节点保存元素的成员，第二个节点保存元素的分值。压缩列表内的元素按照分值从小到大排序，分值小的靠近表头，分值大的靠近表尾。  
 
 zset编码底层实际上是由skiplist和dict构成的：  

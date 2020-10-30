@@ -28,7 +28,7 @@ quicklist本质上节点为ziplist的双向链表的数据结构，所以quickli
 所以ziplist的长度，需要根据实际使用场景来进行调整，redis提供了配置参数list-max-ziplist-size，可供使用者来进行设定。
 
 **quicklist结构：**
-![quicklist](quicklist.png)
+![quicklist.png](https://i.loli.net/2020/10/29/t3kdbfizKcxwsGV.png)
 
 ## 结构体与宏定义
 

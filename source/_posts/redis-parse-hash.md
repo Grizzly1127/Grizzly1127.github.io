@@ -19,13 +19,13 @@ hash对象底层编码方式有两种，`ziplist`或`hashtable`。
 <!-- more -->
 
 让我们来测试一下：  
-![hash_convert](t_hash_convert1.png)  
+![t_hash_convert1.png](https://i.loli.net/2020/10/29/vlXmwHb7Dn2WO8k.png)
 可以看到，当k2的value长度大于64字节时，不满足第一个条件，redis会将ziplist转为hashtable。  
 第二个条件可以自行测试。  
 
 下面介绍一下hash对象是如何使用ziplist进行存储的：  
 当有新的键值对需要加入hash对象中时，程序会先将保存了键的节点推入到压缩列表的表尾，然后再将存有值的节点推入到压缩列表表尾。所以，同一个键值对的两个节点总是紧挨在一起的，键在前，值在后。
-![hash_ziplist](t_hash_ziplist.png)
+![t_hash_ziplist.png](https://i.loli.net/2020/10/29/lATicx3Z78Degdj.png)
 
 ziplist的实现方式可查看[Redis源码-压缩列表ziplist](../redis-parse-ziplist)。  
 hashtable的实现方式可查看[Redis源码-字典dict](../redis-parse-dict)。

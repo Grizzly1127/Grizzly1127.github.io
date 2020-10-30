@@ -20,15 +20,15 @@ set对象底层编码方式有两种，`intset`或`hashtable`。
 
 下面让我们测试一下：  
 例1：  
-![intset1](t_set_intset1.png)  
+![t_set_intset1.png](https://i.loli.net/2020/10/29/vnkPheCN7RUdKSj.png)
 当添加非整数的字符串时，则会转为hashtable编码  
-![intset2](t_set_intset2.png)  
+![t_set_intset2.png](https://i.loli.net/2020/10/29/WaIGyVSbJtMu4HE.png)
 
 例2：  
 插入512个整数，使用的是intset编码  
-![intset3](t_set_intset3.png)  
+![t_set_intset3.png](https://i.loli.net/2020/10/29/8r4QGNk6LVvTxbu.png)
 当插入第513个整数时，将会转为hashtable编码  
-![intset4](t_set_intset4.png)  
+![t_set_intset4.png](https://i.loli.net/2020/10/29/AISc4z7bOYN9pmF.png)
 
 |命令|功能|时间复杂度|
 |---|---|---|

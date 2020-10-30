@@ -20,10 +20,10 @@ Redis服务器在运行的时候会创建大量的redisObject对象，这些对�
 <!-- more -->
 
 操作如下图：
-![dbSelect](db0.png)
+![db0.png](https://i.loli.net/2020/10/29/IJD7hLAU81kFSNz.png)
 
 redis服务结构体如下：  
-![redisServer](db1.png)
+![db1.png](https://i.loli.net/2020/10/29/DeiQsrYdVA4Cn9M.png)
 
 redis通过字典保存数据库中的所有键值对，我们称之为键空间(key space)。键空间和用户所见的数据库是直接对应的：
 

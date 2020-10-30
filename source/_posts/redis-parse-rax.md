@@ -13,7 +13,7 @@ copyright: true
 Redis 5.0版本引入的一个新的数据结构。目前主要用在stream这个数据结构上。Rax是一个有序字典树（基数树），按照key的字典序排列，支持快速定位、查找和删除操作。  
 <!-- more -->
 **一、Rax数据结构：**
-![rax_node](rax_node.png)
+![rax_node.png](https://i.loli.net/2020/10/29/WbrpgM9KYSknzqC.png)
 字段说明：
 
 1. iskey：占用1个bit。表示该节点是否包含key。
@@ -48,10 +48,10 @@ Redis 5.0版本引入的一个新的数据结构。目前主要用在stream这�
        ```
 
         非压缩与压缩节点图示如下：
-       ![data_compre](rax_compr.png)
+       ![rax_compr.png](https://i.loli.net/2020/10/29/r8SCUzsHvRWmdMY.png)
 
 **二、Rax创建：**
-![rax_new](rax_new.png)  
+![rax_new.png](https://i.loli.net/2020/10/29/buEDwOajJA8x72S.png)
 
 **三、Rax插入：**
 ps：以下内容中的padding皆是为了内存对齐填充的空间。  
@@ -60,25 +60,25 @@ ps：以下内容中的padding皆是为了内存对齐填充的空间。
 解析：  
 首先从头结点开始查找，因为这是一个空的基数树，所以直接将"dog"插入到节点中，设置该节点为压缩节点（iscompr=1）,padding部分是为了内存对齐而填充的，创建该节点的叶子结点，叶子结点中，iskey=1是表示从头结点到该节点的父节点是一个完整的key，iskey=1 && isnull=0表示该叶子结点存储了key的value。  
 结果如下图：  
-![rax_insert_1](rax_insert_1.png)
+![rax_insert_1.png](https://i.loli.net/2020/10/29/EIhFsJoVjm95ucA.png)
 
 **2. 接着插入数据：<cat, "猫咪很可爱">**
 解析：  
 接着上面的基数树，从头结点开始查找，当前头结点存储的第一个字符是'd'，与要插入的key的第一个字符'c'不相等，所以需要将该节点拆分成两个节点（拆分的过程可看我下面的源码注释），分别存储[d]和[og]，此时基数树有3个节点。随后将字符'c'插入到首节点中，接着创建'c'子节点，将[at]插入到子节点中，并创建子节点的叶节点插入value的指针，此时基数树存在5个节点，元素个数为2。  
 结果如下图：  
-![rax_insert_2](rax_insert_2.png)
+![rax_insert_2.png](https://i.loli.net/2020/10/29/xqupKsLR5PilDSd.png)
 
 **3. 接着插入数据：<doggy, "小狗很可爱">**
 解析：  
 接着上面的基数树，从头结点开始查找key['doggy']，发现头结点只有一个'd'，接着在'd'的子节点node_1中比较['oggy']，找到['og']，'og'的子节点为叶子结点，这时只要直接把['gy']插入到叶子结点中，并创建一个'gy'的叶子结点插入value指针，即可完成插入。此时该基数树的节点数为6，元素个数为3。  
 结果如下图：  
-![rax_insert_3](rax_insert_3.png)
+![rax_insert_3.png](https://i.loli.net/2020/10/29/K9yoSLO8pPHlw1U.png)
 
 **4. 接着插入数据：<carry, "携带">**
 解析：  
 步骤如上一步，当匹配到节点['at']时，需要拆分该节点为['a']节点和['rt']节点， ['a']为['rt']的父节点，['rt']节点为非压缩节点，'r'指针指向新的节点['ry']，并创建['ry']的叶子结点，'t'指针指向原先的叶子结点，基数树右边部分保持不变，完成插入操作。此时该基数树的节点数为9，元素个数为4。  
 结果如下图：  
-![rax_insert_4](rax_insert_4.png)
+![rax_insert_4.png](https://i.loli.net/2020/10/29/QJBCOAD3Wm1ljah.png)
 
 **四、Rax查找：**
 查找实现函数为：raxLowWalk()  

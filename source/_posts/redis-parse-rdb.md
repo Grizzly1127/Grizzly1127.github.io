@@ -75,7 +75,7 @@ RDB快照是一次全量备份，存储的是内存数据的二进制序列化�
 * check_sum：校验和（CRC64），用来检查RDB文件是否出错
 
 图示如下：
-![rdb1](rdb1.png)
+![rdb1.png](https://i.loli.net/2020/10/29/K5OtPgSx2keF46U.png)
 
 **4.1 TYPE编码**
 `TYPE`常量记录了值对象的类型和编码，规则如下：

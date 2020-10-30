@@ -20,7 +20,7 @@ Redis的字典是由两个HashTable（后面简称ht[0]、ht[1]）构成，与�
 **确定key的位置（查找、删除、插入操作）**：如果当前正在rehash，则插入到ht[1]中，根据key计算hash值，& sizemask后得到的index（index=hash_value & dict->ht[table].sizemask）就是该key所在的链表的索引。
 
 Redis中字典的结构：
-![字典结构](dict.png)  
+![dict.png](https://i.loli.net/2020/10/29/MYBu7GDHWhObX5T.png)
 
 ## 结构体与宏定义
 

@@ -131,7 +131,114 @@ using arr12 = std::array<T, 12>;
 
 ### 1.4 智能指针
 
-C++11 摒弃了 auto_ptr，并新增了三种智能指针：**unique_ptr**、**shared_ptr** 和 **weak_ptr**。
+C++11 摒弃了 auto_ptr，并新增了三种智能指针：**unique_ptr**、**shared_ptr** 和 **weak_ptr**，定义在 `<memory>` 中。
+三者皆可对动态资源进行管理，保证任何情况下，已构造的对象最终会被销毁，也就是它的析构函数最终会被调用。
+
+#### unique_ptr
+
+unique_ptr 持有对象的独有权，同一时刻只能有一个 unique_ptr 指向给定对象（通过禁止拷贝语义，只有移动语义来实现）。
+unique_ptr 指针本身的生命周期：从 unique_ptr 指针创建时开始，直到离开作用域。
+
+```c++
+#include <memory>
+#include <iostream>
+
+int main()
+{
+    std::unique_ptr<int> up1(new int(11));  // 无法拷贝
+    // std::unique_ptr<int> up2 = up1;      // err, 编译时错误
+    std::cout << *up1 << std::endl;         // 11
+
+    std::unique_ptr<int> up3 = std::move(up1); // 可以移动，up3独占该指针
+    // std::cout << *up1 << std::endl;         // err, 运行时错误
+    std::cout << *up3 << std::endl;         // 11
+    up1.reset();    // 不会导致运行时错误
+    up3.reset();    // 显示释放内存
+    // std::cout << *up3 << std::endl;         // err, 运行时错误
+
+    std::unique_ptr<int> up4(new int(22));  // 无法拷贝
+    up4.reset(new int(44)); // "绑定"动态对象
+    std::cout << *up4 << std::endl;         // 44
+    up4 = nullptr; // 显示销毁所指向对象，同时智能指针变为空指针，与reset()等价
+
+    std::unique_ptr<int> up5(new int(55));
+    int *p = up5.release(); //只是释放控制权，不会释放内存
+    std::cout << *p << std::endl;   // 55
+    //cout << *up5 << endl; // err, 运行时错误
+    delete p; //释放堆区资源
+    return 0;
+}
+```
+
+#### shared_ptr
+
+shared_ptr 允许多个该智能指针共享一段内存，通过引用计数（reference counting）实现，会记录有多少个 shared_ptr 共同指向一个对象，一旦最后一个 shared_ptr 被销毁，也就是某个对象的引用计数变为 0，这个对象会被自动删除。
+
+```c++
+#include <memory>
+#include <iostream>
+
+int main()
+{
+    std::shared_ptr<int> sp1(new int(11)); // 引用计数 = 1
+    std::shared_ptr<int> sp2 = sp1; // 允许拷贝，引用计数加一
+    std::cout << "sp1 count: " << sp1.use_count() << std::endl; // sp1 count: 2
+    std::cout << "sp2 count: " << sp2.use_count() << std::endl; // sp2 count: 2
+    std::cout << *sp1 << std::endl; // 11
+    std::cout << *sp2 << std::endl; // 11
+
+    sp1.reset(); // 显示释放对象控制权，引用计数减一
+    std::cout << "sp2 count: " << sp2.use_count() << std::endl; // sp2 count: 1
+    std::cout << *sp2 << std::endl; // 11
+    return 0;
+}
+```
+
+#### weak_ptr
+
+weak_ptr 是为配合 shared_ptr 而引入的一种智能指针来协助 shared_ptr 工作，它可以从一个 shared_ptr 或另一个 weak_ptr 对象构造，它的构造和析构不会引起引用计数的增加或减少。没有重载 `*` 和 `->`，但可以使用 lock 获得一个可用的 shared_ptr 对象。
+
+weak_ptr 的使用更为复杂一点，它可以指向 shared_ptr 指针指向的对象内存，却并不拥有该内存，而使用 weak_ptr 成员 lock，则可返回其指向内存的一个 share_ptr 对象，且在所指对象内存已经无效时，返回指针空值 nullptr。
+
+注意：weak_ptr 并不拥有资源的所有权，所以不能直接使用资源。
+可以从一个 weak_ptr 构造一个 shared_ptr 以取得共享资源的所有权。
+
+```c++
+#include <memory>
+#include <iostream>
+
+void check(std::weak_ptr<int>& wp)
+{
+    std::shared_ptr<int> sp = wp.lock();
+    if (sp != nullptr) {
+        std::cout << *sp << std::endl;
+    } else {
+        std::cout << "pointer is invalid" << std::endl;
+    }
+}
+
+int main()
+{
+    std::shared_ptr<int> sp1(new int(11)); // 引用计数 = 1
+    std::shared_ptr<int> sp2 = sp1; // 允许拷贝，引用计数加一
+    std::weak_ptr<int> wp1 = sp1; // wp1的构造不会引起引用计数加一
+
+    std::cout << "wp1 count: " << wp1.use_count() << std::endl; // wp1 count: 2
+    std::cout << *sp1 << std::endl; // 11
+    std::cout << *sp2 << std::endl; // 11
+    check(wp1); // 11
+
+    sp1.reset(); // 显示释放对象控制权，引用计数减一
+    std::cout << "wp1 count: " << wp1.use_count() << std::endl; // wp1 count: 1
+    std::cout << *sp2 << std::endl; // 11
+    check(wp1); // 11
+
+    sp2.reset(); // 显示释放对象控制权，引用计数减一
+    std::cout << "wp1 count: " << wp1.use_count() << std::endl; // wp1 count: 0
+    check(wp1); // pointer is invalid
+    return 0;
+}
+```
 
 ### 1.5 异常规范方面的修改
 

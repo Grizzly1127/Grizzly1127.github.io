@@ -23,7 +23,7 @@ antirez 在《Redis 持久化解密》一文中讲述了 RDB 和 AOF 各自的�
 * RDB 方式数据没办法做到实时持久化，而 AOF 方式可以做到。
 
 **3. AOF持久化的实现**
-![AOF1](aof1.png)
+![aof1.png](https://i.loli.net/2020/10/29/92WBXYbOpDcl7aJ.png)
 如上图所示，AOF 持久化功能的实现可以分为命令追加( append )、文件写入( write )、文件同步( sync )、文件重写(rewrite)和重启加载(load)。其流程如下：
 
 * 所有的写命令会追加到 AOF 缓冲中。
@@ -63,7 +63,7 @@ Redis的 `write` 操作会触发延迟写（delayed write）机制，在同步�
 
 **4. AOF数据恢复**
 AOF文件中包含了重建Redis数据所需的所有命令，所以Redis只要读入并重新执行一遍 AOF 文件里边保存的写命令，就可以还原 Redis 关闭之前的状态。
-![AOF2](aof2.png)
+![aof2.png](https://i.loli.net/2020/10/29/RvlhedCqP6ywjNb.png)
 
 **5. AOF重写**
 因为AOF持久化是通过保存被执行的写命令来记录Redis状态的，所以随着Redis长时间运行，AOF文件中的内容越来越多，文件的体积也会越来越大，如果不加以控制，Redis通过AOF文件还原数据库需要的时间将会变得很久，同时AOF文件很可能会对Redis甚至宿主主机造成影响。

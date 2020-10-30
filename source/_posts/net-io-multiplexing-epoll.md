@@ -84,7 +84,7 @@ epoll 除了提供 select/poll 那种 IO 事件的水平触发（level-triggered
 ## epoll使用
 
 使用流程图如下：
-![epoll](epoll.png)
+![epoll.png](https://i.loli.net/2020/10/29/7wIhkVXonSJ6j3g.png)
 
 实现简单的服务代码：
 

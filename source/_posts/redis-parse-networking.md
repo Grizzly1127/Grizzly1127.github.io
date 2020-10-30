@@ -18,14 +18,14 @@ Redis网络通讯的具体实现在`networking.c`中，主要包括如何建立�
 
 **2. 回顾tcp socket编程**
 2.1 TCP客户/服务器程序socket编程流程如下：
-![socket](socket.png)
+![socket.png](https://i.loli.net/2020/10/29/5diHCr9l4joFegw.png)
 
 2.2 TCP的三次握手
-![handshake](tcp_handshake.png)
+![tcp_handshake.png](https://i.loli.net/2020/10/29/o5zhlJdUMWrGpC3.png)
 
 2.3 TCP的四次挥手
 TCP的断开连接操作可由**任意一端发起**
-![close](tcp_close.png)
+![tcp_close.png](https://i.loli.net/2020/10/29/miRLwn5sPd63Ycb.png)
 
 **3. anet解析**
 anet.h中定义的函数如下：
@@ -115,7 +115,7 @@ end:
 2. Redis更倾向于保持简单的设计，如果在命令执行部分改用多线程会不得不处理各种问题，例如并发写入、加锁等
 
 那么将读写缓冲区改为多线程后整个模型大致如下：
-![thread-io](thread-io.png)
+![thread-io.png](https://i.loli.net/2020/10/29/AXlEnyOF3qk7vbg.png)
 
 4.1 线程初始化
 首先，如果用户没有开启多线程IO，也就是io_threads_num == 1时直接按照单线程模型处理，如果超过线程数IO_THREADS_MAX_NUM上限则异常退出。

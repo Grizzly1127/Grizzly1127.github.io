@@ -18,7 +18,7 @@ categories:
 1. 官方链接： https://www.kernel.org/
 2. 如果不能科学上网，下载速度将会很慢，可以使用上海交大的源下载：http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/
 
-![kernel_code](kernel.png)
+![kernel.png](https://i.loli.net/2020/10/29/PFJYs8yI6VMlaBv.png)
 因为我使用的系统是 `CentOS release 6.8 (Final)`，其中 linux 内核版本为 `2.6.32`，所以我下载了 `linux-2.6.32.9.tar.gz`。
 其它版本可自行选择下载。
 
@@ -69,7 +69,7 @@ int FD_ISSET(int fd, fd_set *fdset); //测试某个位是否被置位
 ### select使用
 
 使用流程图如下：
-![select](select.png)
+![select.png](https://i.loli.net/2020/10/29/7RFfJjZzT3sKSWh.png)
 
 实现简单的服务代码：
 

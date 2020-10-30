@@ -70,7 +70,7 @@ pollfd 结构体中的 events 由用户来设置，告诉内核我们关注的�
 ### poll使用
 
 使用流程图如下：
-![poll](poll.png)
+![poll.png](https://i.loli.net/2020/10/29/kMKpA9uj2yLmcvi.png)
 
 实现简单的服务代码：
 

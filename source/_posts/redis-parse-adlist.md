@@ -12,7 +12,7 @@ copyright: true
 
 很好理解的双端链表，结构如下，不多做解释了。
 <!-- more -->
-![list](adlist.png)
+![adlist.png](https://i.loli.net/2020/10/29/EwAUNjpFr6Px59Q.png)
 
 ## 结构体与宏定义
 

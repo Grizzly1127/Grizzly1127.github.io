@@ -13,7 +13,7 @@ copyright: true
 ziplist在redis中主要用于Hash与List数据结构的底层实现之一，ziplist没有定义专门的结构体，其在内存块中的表示如下图所示：  
 <!-- more -->
 **ziplist结构：**  
-![ziplist](ziplist.png)  
+![ziplist.png](https://i.loli.net/2020/10/29/N3HWQIg91pRl4Ok.png)
 |属性       |类型       |长度        |用途        |
 |---        |---        |---        |---        |
 |zlbytes    |uint_32t   |4B         |记录整个压缩列表占用的内存字节数：在对压缩列表进行内存重分配， 或者计算 zlend的位置时使用 |
@@ -23,7 +23,7 @@ ziplist在redis中主要用于Hash与List数据结构的底层实现之一，zip
 |zlend      |uint_8t    |1B         | 0xFF（255），用于标记压缩列表的末端。|  
 
 **entry结构：**  
-![entry](ziplist_entry.png)  
+![ziplist_entry.png](https://i.loli.net/2020/10/29/AB5S3XYTweykGzI.png)
 prevrawlen：前置节点的长度  
 
 1. 如果长度小于254个字节，则使用1字节（uint8_t）来存储prevrawlen。
@@ -31,7 +31,7 @@ prevrawlen：前置节点的长度
 2. 如果长度大于或等于254字节，则使用5字节(uint32_t)来存储prevrawlen。  
 
 len/encoding：当前节点的长度（编码类型）  
-![encoding](ziplist_encoding.png)
+![ziplist_encoding.png](https://i.loli.net/2020/10/29/7wuK5qsF9LXiNDV.png)
 
 data：数据  
 

@@ -16,7 +16,7 @@ Redis 5.0版本引入的一个新的数据结构，它是对ziplist压缩列表�
 <!-- more -->
 和ziplist一样，没有专门定义的结构体，在内存中的表现如下：  
 **listpack结构：**
-![listpack](listpack.png)  
+![listpack.png](https://i.loli.net/2020/10/29/KbiyRrgpVwvAaqU.png)
 |属性       |长度        |用途        |
 |---        |---        |---        |
 |lpbyte     |4byte      |表示整个lp的字节数（最大可存储4GB）。可用于快速定位最后一个节点的位置。|
@@ -25,12 +25,12 @@ Redis 5.0版本引入的一个新的数据结构，它是对ziplist压缩列表�
 |lpend      |1byte      |lp结束标志，和ziplist一样，恒为0xff。|
 
 **lpentry节点：**
-![lpentry](listpack_entry.png)
+![listpack_entry.png](https://i.loli.net/2020/10/29/4PNFi12ueAg6ndK.png)
 encoding：数据的编码类型，如下：  
-![encoding](listpack_encoding.png)
+![listpack_encoding.png](https://i.loli.net/2020/10/29/F2AfskTOS6nexP8.png)
 data：元素。
 backlen：存储encoding+data的长度，这个是用于反向遍历的关键，通过位置指针p-backlen_size-backlen，可移动到上一个节点的位置。编码如下：  
-![backlen](listpack_backlen.png)
+![listpack_backlen.png](https://i.loli.net/2020/10/29/MCeUzOo8qwh2idN.png)
 
 下面来列举一下主要函数的时间复杂度：  
 |函数|作用 |复杂度|

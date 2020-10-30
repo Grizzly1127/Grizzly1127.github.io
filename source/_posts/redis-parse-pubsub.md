@@ -15,7 +15,7 @@ Redis发布订阅(pub/sub)是一种消息通信模式，由三部分组成：发
 
 <!-- more -->
 
-![pubsub1](pubsub1.png)
+![pubsub1.png](https://i.loli.net/2020/10/29/ujSpaOfrmVAbRyd.png)
 发布者和订阅者都是Redis客户端，频道是Redis服务端，发布者将消息发布到某一频道上，订阅了这一频道的订阅者就会收到该条信息。Redis客户端可订阅任意数量的频道。
 Redis的发布订阅功能并不保证可靠，因为所有数据都存在内存中，没有提供持久化的功能，也不记录消费端状态，所以相对市面上的一些消息队列相比（如kafka、rabittMQ等），可靠性会差很多。在Redis5.0版本的stream消息队列功能发布之前，会有使用者使用redis-list来实现消息队列和发布订阅的功能，虽然有持久化（AOF & RDB）的功能，但是实现起来比较笨拙，不够方便。
 
@@ -89,7 +89,7 @@ typedef struct client {
 >1.在Redis服务端内部维护了一个 `pubsub_channels` 的channel列表，记录了此客户端所订阅的频道。
 >
 >2.当客户端订阅某一个频道之后，Redis服务端就会往自身的 `pubsub_channels` 这个字典变量中新添加一条数据，实际上这个 dict 字典维护的是一张链表，比如，下图展示的 pubsub_channels 示例中，client 1、client 2 就订阅了 channel 1，而其他频道也分别被其他客户端订阅：
-![pubsub1](pubsub2.png)
+![pubsub2.png](https://i.loli.net/2020/10/29/WBJRmu3PDoazsct.png)
 >
 >3.当一个Redis客户端publish一个message的时候，会先去服务端的 `pubsub_channels` 找相应的channel，遍历里面的client，然后发送通知，即完成了整个发布订阅的流程。
 

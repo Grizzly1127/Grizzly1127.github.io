@@ -18,15 +18,15 @@ hyperloglog是一种算法，它提供了不精确的去重计数方案。redis�
 当在计数比较小的时候，大多数桶的计数值都是0，此时redis采用了稀疏模式存储，稀疏模式存储的占用空间远远小于12k字节，而密集模式存储占用的空间固定为12k。  
 
 **稀疏模式存储结构：**
-![sparse](hyperloglog_sparse.png)  
+![hyperloglog_sparse.png](https://i.loli.net/2020/10/29/6NPQeUOmA5xtohY.png)
 当连续多个桶的计数值为0时，redis使用一个字节来表示连续有多少个桶的值为0：00xxxxxx。前缀00表示接下来的6bit的整数值**加1**就是连续为0的桶的数量。比如，00101011：表示连续 101011(bin) + 1 = 44(dec)个桶的计数值都为0。6个bit最多表示能表示连续64个桶的值为0，所以redis将用两个字节表示多个多于64个连续0的桶数：01xxxxxx yyyyyyyy，后面的14个bit可以表示连续16384个桶的值为0。这就是hyperloglog数据结构中16384个桶的初始化状态。  
 当连续多个桶的计数值非0时，则使用一个字节：1vvvvvxx表示，其中中间的5个bit vvvvv表示计数值，后面的2个bit xx表示连续几个桶，所以稀疏模式的计数值最大值为11111(bin)+1=32(dec)，最多连续桶为11(bin)+1=4(dec)，当计数值超过32时，redis会立即转为密集模式（不可逆的）。
 
 **密集模式存储结构：**  
 是由连续的16384个6bit串成的字符串位图。需要注意，普通的字节位序是左边高位右边低位，而在此处的字节位序是左边低位右边高位，所以需要进行倒置。  
-![dense_byte](hyperloglog_dense_byte.png)  
+![hyperloglog_dense_byte.png](https://i.loli.net/2020/10/29/jmqgJCNyDT658vc.png)
 以下是密集模式存储结构：
-![dense](hyperloglog_dense.png)
+![hyperloglog_dense.png](https://i.loli.net/2020/10/29/9b6GYFznQHg7wjc.png)
 [参考这篇文章，图文讲解的很清楚](https://blog.csdn.net/u013474436/article/details/88945767)
 
 ## 结构体与宏定义

@@ -18,7 +18,7 @@ len：字符串的实际长度
 alloc：字符串的最大容量  
 flags：表示结构体的类型  
 buf：字符串  
-![sds结构](sds.png)
+![sds.png](https://i.loli.net/2020/10/29/n3tC1EMfqwexdlX.png)
 
 ## SDS结构体
 

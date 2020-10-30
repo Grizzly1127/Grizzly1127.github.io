@@ -60,7 +60,7 @@ copyright: true
 
 如下图所示，异步日志的框架图：
 
-![async_logging_frame](AsyncLogging1.png)
+![AsyncLogging.png](https://i.loli.net/2020/10/29/1HQT9A4Z2iranfV.png)
 
 根据以上的大致思路，我实现了一个异步日志库 [momoko-log](!https://github.com/Grizzly1127/momoko-log)，已托管到 github 上。
 
