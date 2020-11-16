@@ -937,7 +937,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-10-29 20:39:48" itemprop="dateModified" datetime="2020-10-29T20:39:48+08:00">2020-10-29</time>
+                <time title="修改时间：2020-11-16 17:55:11" itemprop="dateModified" datetime="2020-11-16T17:55:11+08:00">2020-11-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -964,11 +964,11 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>源码位置：t_hash.c/server.h  </p>
-<p>hash对象底层编码方式有两种，<code>ziplist</code>或<code>hashtable</code>。<br>使用ziplist编码需要同时满足以下条件：  </p>
+          <p>源码位置：t_hash.c/server.h</p>
+<p>hash 对象底层编码方式有两种，<code>ziplist</code>或<code>hashtable</code>。<br>使用 ziplist 编码需要同时满足以下条件：</p>
 <ul>
-<li>hash对象保存的键值对的键和值的字符串长度小于64字节（可通过redis.conf配置：hash_max_ziplist_value）</li>
-<li>hash对象保存的键值对数小于512个（可通过redis.conf配置：hash_max_ziplist_entries）</li>
+<li>hash 对象保存的键值对的键和值的字符串长度小于 64 字节（可通过 redis.conf 配置：hash_max_ziplist_value）</li>
+<li>hash 对象保存的键值对数小于 512 个（可通过 redis.conf 配置：hash_max_ziplist_entries）</li>
 </ul>
           <!--noindex-->
             <div class="post-button">
@@ -1027,7 +1027,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-09-23 11:23:28" itemprop="dateModified" datetime="2020-09-23T11:23:28+08:00">2020-09-23</time>
+                <time title="修改时间：2020-11-16 17:55:48" itemprop="dateModified" datetime="2020-11-16T17:55:48+08:00">2020-11-16</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1055,7 +1055,7 @@
 
       
           <p>源码位置：t_list.c/server.h</p>
-<p>Redis3.2版本之前，list对象底层是由 <a href="../redis-parse-ziplist">ziplist</a> 和 <a href="../redis-parse-adlist">linkedlist</a> 实现的。3.2版本之后，底层是由 <a href="../redis-parse-quicklist">quicklist</a> 来实现。<br></p>
+<p>Redis3.2 版本之前，list 对象底层是由 <a href="../../1-data-structure/redis-parse-ziplist">ziplist</a> 和 <a href="../../1-data-structure/redis-parse-adlist">linkedlist</a> 实现的。3.2 版本之后，底层是由 <a href="../../1-data-structure/redis-parse-quicklist">quicklist</a> 来实现。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/Redis/2-object/redis-parse-list/#more" rel="contents">
