@@ -14,7 +14,7 @@ Redis的字典是由两个HashTable（后面简称ht[0]、ht[1]）构成，与�
 <!-- more -->
 **rehash的条件**：当哈希表的结点个数（used）是哈希表中节点链表数（size）的5倍时，将进行rehash。  
 
-**rehash的过程**：当满足rehash的条件时，redis将进行expend扩展，扩展的size是ht[0]->size的2倍。因为是渐进式的rehash，所以redis会初始化ht[1]，给ht[1]分配足够的内存大小（ht[0]->size*2*sizeof(dictEntry*)），将字典的rehashidx的值置为0，并且当前不会进行rehash操作。  
+**rehash的过程**：当满足rehash的条件时，redis将进行expend扩展，扩展的size是ht[0]->size的2倍。因为是渐进式的rehash，所以redis会初始化ht[1]，给ht[1]分配足够的内存大小（ht[0]->size\* 2 \*sizeof(dictEntry*)），将字典的rehashidx的值置为0，并且当前不会进行rehash操作。  
 当用户进行查询、插入、删除时，将进行一个节点的rehash操作。直到ht[0]的节点全部rehash完毕后，删除ht[0]并且把ht[1]指针赋予给ht[0]，rehashidx值将回到-1，直到下次满足rehash的条件。  
   
 **确定key的位置（查找、删除、插入操作）**：如果当前正在rehash，则插入到ht[1]中，根据key计算hash值，& sizemask后得到的index（index=hash_value & dict->ht[table].sizemask）就是该key所在的链表的索引。

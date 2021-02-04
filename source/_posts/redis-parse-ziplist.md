@@ -14,6 +14,7 @@ ziplist在redis中主要用于Hash与List数据结构的底层实现之一，zip
 <!-- more -->
 **ziplist结构：**  
 ![ziplist.png](https://i.loli.net/2020/10/29/N3HWQIg91pRl4Ok.png)
+
 |属性       |类型       |长度        |用途        |
 |---        |---        |---        |---        |
 |zlbytes    |uint_32t   |4B         |记录整个压缩列表占用的内存字节数：在对压缩列表进行内存重分配， 或者计算 zlend的位置时使用 |
@@ -24,30 +25,26 @@ ziplist在redis中主要用于Hash与List数据结构的底层实现之一，zip
 
 **entry结构：**  
 ![ziplist_entry.png](https://i.loli.net/2020/10/29/AB5S3XYTweykGzI.png)
-prevrawlen：前置节点的长度  
+**prevrawlen：** 前置节点的长度
 
-1. 如果长度小于254个字节，则使用1字节（uint8_t）来存储prevrawlen。
+  1. 如果长度小于254个字节，则使用1字节（uint8_t）来存储prevrawlen。
+  2. 如果长度大于或等于254字节，则使用5字节(uint32_t)来存储prevrawlen。  
 
-2. 如果长度大于或等于254字节，则使用5字节(uint32_t)来存储prevrawlen。  
-
-len/encoding：当前节点的长度（编码类型）  
+**len/encoding：** 当前节点的长度（编码类型）
 ![ziplist_encoding.png](https://i.loli.net/2020/10/29/7wuK5qsF9LXiNDV.png)
 
-data：数据  
+**data：** 数据  
 
 实际上，源码里有定义zlentry的结构体，但是这个结构体并不是实际上存储的节点结构，它仅做中间结构操作使用。  
 
-</br>
-
 **时间复杂度：**
+
 | 函数          | 作用          | 时间复杂度 |
 | ---           |---           |---        |
 |ziplistNew     |创建跳跃表     |O(1)       |
 |ziplistInsert  |插入节点       |平均O(N)（耗时在连锁更新）       |
 |ziplistDelete  |删除节点       |平均O(N)（耗时在连锁更新）       |
 |ziplistFind    |查找节点       |平均O(N)   |
-</br>
-</br>
 
 ## 结构体与宏定义
 
@@ -179,8 +176,6 @@ typedef struct zlentry {
 } while(0)
 ```
 
-</br>
-
 ## 函数功能总览
 
 ``` c
@@ -200,8 +195,6 @@ unsigned int ziplistLen(unsigned char *zl);
 size_t ziplistBlobLen(unsigned char *zl);
 void ziplistRepr(unsigned char *zl);
 ```
-
-</br>
 
 ## 主要函数实现
 

@@ -2,57 +2,57 @@
 title: Redis源码-散列对象hash
 date: 2020-04-24 16:12:52
 tags: Redis
-categories: 
-- Redis
-- 2-object
+categories:
+  - Redis
+  - 2-object
 copyright: true
 ---
 
-源码位置：t_hash.c/server.h  
+源码位置：t_hash.c/server.h
 
-hash对象底层编码方式有两种，`ziplist`或`hashtable`。  
-使用ziplist编码需要同时满足以下条件：  
+hash 对象底层编码方式有两种，`ziplist`或`hashtable`。  
+使用 ziplist 编码需要同时满足以下条件：
 
-* hash对象保存的键值对的键和值的字符串长度小于64字节（可通过redis.conf配置：hash_max_ziplist_value）
-* hash对象保存的键值对数小于512个（可通过redis.conf配置：hash_max_ziplist_entries）
+- hash 对象保存的键值对的键和值的字符串长度小于 64 字节（可通过 redis.conf 配置：hash_max_ziplist_value）
+- hash 对象保存的键值对数小于 512 个（可通过 redis.conf 配置：hash_max_ziplist_entries）
 
 <!-- more -->
 
 让我们来测试一下：  
 ![t_hash_convert1.png](https://i.loli.net/2020/10/29/vlXmwHb7Dn2WO8k.png)
-可以看到，当k2的value长度大于64字节时，不满足第一个条件，redis会将ziplist转为hashtable。  
-第二个条件可以自行测试。  
+可以看到，当 k2 的 value 长度大于 64 字节时，不满足第一个条件，redis 会将 ziplist 转为 hashtable。  
+第二个条件可以自行测试。
 
-下面介绍一下hash对象是如何使用ziplist进行存储的：  
-当有新的键值对需要加入hash对象中时，程序会先将保存了键的节点推入到压缩列表的表尾，然后再将存有值的节点推入到压缩列表表尾。所以，同一个键值对的两个节点总是紧挨在一起的，键在前，值在后。
+下面介绍一下 hash 对象是如何使用 ziplist 进行存储的：  
+当有新的键值对需要加入 hash 对象中时，程序会先将保存了键的节点推入到压缩列表的表尾，然后再将存有值的节点推入到压缩列表表尾。所以，同一个键值对的两个节点总是紧挨在一起的，键在前，值在后。
 ![t_hash_ziplist.png](https://i.loli.net/2020/10/29/lATicx3Z78Degdj.png)
 
-ziplist的实现方式可查看[Redis源码-压缩列表ziplist](../redis-parse-ziplist)。  
-hashtable的实现方式可查看[Redis源码-字典dict](../redis-parse-dict)。
+ziplist 的实现方式可查看[Redis 源码-压缩列表 ziplist](../../1-data-structure/redis-parse-ziplist)。  
+hashtable 的实现方式可查看[Redis 源码-字典 dict](../../1-data-structure/redis-parse-dict)。
 
-|命令|功能|时间复杂度|
-|---|---|---|
-|HSET|设置key指定的哈希集中指定字段的值|O(1)|
-|HSETNX|只在key指定的哈希集中不存在指定的字段时，设置字段的值|O(1)|
-|HMSET|设置key指定的哈希集中指定多个字段的值|O(N)，N为字段数|
-|HGET|返回key指定的哈希集中该字段所关联的值|O(1)|
-|HMGET|返回key指定的哈希集中指定多个字段的值|O(N)，N为字段数|
-|HGETALL|返回key指定的哈希集中所有的字段和值|O(N)，N为hash的size|
-|HVALS|返回key指定的哈希集中所有字段的值|O(N)，N为hash的size|
-|HDEL|从key指定的哈希集中移除指定的域|O(N)，N是被删除的字段数量|
-|HEXISTS|返回hash里面field是否存在|O(1)|
-|HKEYS|返回key指定的哈希集中所有字段的名字|O(N)，N为hash的size|
-|HLEN|返回key指定的哈希集包含的字段的数量|O(1)|
-|HSCAN|用于迭代Hash类型中的键值对|O(1)|
-|HSTRLEN|返回hash指定field的value的字符串长度，如果hash或者field不存在，返回0|O(1)|
-|HINCRBY|增加key指定的哈希集中指定字段的数值|O(1)|
-|HINCRBYFLOAT|为指定key的hash的field字段值执行float类型的increment加|O(1)|
+| 命令         | 功能                                                                            | 时间复杂度                 |
+| ------------ | ------------------------------------------------------------------------------- | -------------------------- |
+| HSET         | 设置 key 指定的哈希集中指定字段的值                                             | O(1)                       |
+| HSETNX       | 只在 key 指定的哈希集中不存在指定的字段时，设置字段的值                         | O(1)                       |
+| HMSET        | 设置 key 指定的哈希集中指定多个字段的值                                         | O(N)，N 为字段数           |
+| HGET         | 返回 key 指定的哈希集中该字段所关联的值                                         | O(1)                       |
+| HMGET        | 返回 key 指定的哈希集中指定多个字段的值                                         | O(N)，N 为字段数           |
+| HGETALL      | 返回 key 指定的哈希集中所有的字段和值                                           | O(N)，N 为 hash 的 size    |
+| HVALS        | 返回 key 指定的哈希集中所有字段的值                                             | O(N)，N 为 hash 的 size    |
+| HDEL         | 从 key 指定的哈希集中移除指定的域                                               | O(N)，N 是被删除的字段数量 |
+| HEXISTS      | 返回 hash 里面 field 是否存在                                                   | O(1)                       |
+| HKEYS        | 返回 key 指定的哈希集中所有字段的名字                                           | O(N)，N 为 hash 的 size    |
+| HLEN         | 返回 key 指定的哈希集包含的字段的数量                                           | O(1)                       |
+| HSCAN        | 用于迭代 Hash 类型中的键值对                                                    | O(1)                       |
+| HSTRLEN      | 返回 hash 指定 field 的 value 的字符串长度，如果 hash 或者 field 不存在，返回 0 | O(1)                       |
+| HINCRBY      | 增加 key 指定的哈希集中指定字段的数值                                           | O(1)                       |
+| HINCRBYFLOAT | 为指定 key 的 hash 的 field 字段值执行 float 类型的 increment 加                | O(1)                       |
 
 ## 函数功能总览
 
 ---
 
-``` c
+```c
 void hsetCommand(client *c); // hset命令
 void hsetnxCommand(client *c); // hsetnx命令
 void hmsetCommand(client *c); // hmset命令
@@ -70,19 +70,19 @@ void hincrbyCommand(client *c); // hincrby命令
 void hincrbyfloatCommand(client *c); // hincrbyfloat命令
 ```
 
-## Redis命令实现
+## Redis 命令实现
 
 ---
 
 插入命令：
 
-``` c
+```c
 HSET key field value
 ```
 
-代码：  
+代码：
 
-``` c
+```c
 void hsetCommand(client *c) {
     int i, created = 0;
     robj *o;
@@ -252,9 +252,9 @@ int hashTypeSet(robj *o, sds field, sds value, int flags) {
 }
 ```
 
-其他与hset相关的命令不做代码解析了，可以自行查看源码。
+其他与 hset 相关的命令不做代码解析了，可以自行查看源码。
 
-``` c
+```c
 HSETNX key field value
 HMSET key field value [field value ...]
 ```
@@ -263,13 +263,13 @@ HMSET key field value [field value ...]
 
 获取命令：
 
-``` c
+```c
 HGET key field
 ```
 
-代码：  
+代码：
 
-``` c
+```c
 // 很简单，基本上就是调用ziplist或dict的find接口获取
 void hgetCommand(client *c) {
     robj *o;
@@ -316,9 +316,9 @@ static void addHashFieldToReply(client *c, robj *o, sds field) {
 }
 ```
 
-其他与hset相关的命令不做代码解析了，可以自行查看源码。
+其他与 hset 相关的命令不做代码解析了，可以自行查看源码。
 
-``` c
+```c
 HMGET key field [field ...]
 ```
 
@@ -326,7 +326,7 @@ HMGET key field [field ...]
 
 其他命令：
 
-``` c
+```c
 HVALS key
 HGETALL key
 HKEYS key
@@ -334,7 +334,7 @@ HKEYS key
 
 代码：
 
-``` c
+```c
 void hkeysCommand(client *c) {
     genericHgetallCommand(c,OBJ_HASH_KEY);
 }
@@ -386,7 +386,7 @@ void genericHgetallCommand(client *c, int flags) {
 
 剩余的命令不做代码解析了，可自行查看源码。
 
-``` c
+```c
 HEXISTS key field
 HINCRBY key field increment
 HINCRBYFLOAT key field increment

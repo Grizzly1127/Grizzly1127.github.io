@@ -62,7 +62,7 @@ copyright: true
 
 ![AsyncLogging.png](https://i.loli.net/2020/10/29/1HQT9A4Z2iranfV.png)
 
-根据以上的大致思路，我实现了一个异步日志库 [momoko-log](!https://github.com/Grizzly1127/momoko-log)，已托管到 github 上。
+根据以上的大致思路，我实现了一个异步日志库 [momoko-log](https://github.com/Grizzly1127/momoko-log)，已托管到 github 上。
 
 ## momoko-log
 

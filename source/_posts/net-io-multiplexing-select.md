@@ -15,8 +15,9 @@ categories:
 在[《I/O模型浅析》](../net-io-model)中已经简单介绍过多路复用I/O，接下来介绍 select、poll 和 epoll。
 这三者的源码在 Linux kernel 源码中，想要查看源码需要下载，两种下载方式：
 
-1. 官方链接： https://www.kernel.org/
-2. 如果不能科学上网，下载速度将会很慢，可以使用上海交大的源下载：http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/
+1. 官方链接： <https://www.kernel.org/>
+2. 如果不能科学上网，下载速度将会很慢，可以使用上海交大的源下载：
+<http://ftp.sjtu.edu.cn/sites/ftp.kernel.org/pub/linux/kernel/>
 
 ![kernel.png](https://i.loli.net/2020/10/29/PFJYs8yI6VMlaBv.png)
 因为我使用的系统是 `CentOS release 6.8 (Final)`，其中 linux 内核版本为 `2.6.32`，所以我下载了 `linux-2.6.32.9.tar.gz`。

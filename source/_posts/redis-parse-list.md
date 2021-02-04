@@ -2,42 +2,43 @@
 title: Redis源码-列表对象list
 date: 2020-04-20 15:14:48
 tags: Redis
-categories: 
-- Redis
-- 2-object
+categories:
+  - Redis
+  - 2-object
 copyright: true
 ---
 
 源码位置：t_list.c/server.h
 
-Redis3.2版本之前，list对象底层是由 [ziplist](../redis-parse-ziplist) 和 [linkedlist](../redis-parse-adlist) 实现的。3.2版本之后，底层是由 [quicklist](../redis-parse-quicklist) 来实现。
+Redis3.2 版本之前，list 对象底层是由 [ziplist](../../1-data-structure/redis-parse-ziplist) 和 [linkedlist](../../1-data-structure/redis-parse-adlist) 实现的。3.2 版本之后，底层是由 [quicklist](../../1-data-structure/redis-parse-quicklist) 来实现。
+
 <!-- more -->
 
-|命令|功能|时间复杂度|
-|---|---|---|
-|LPUSH|从列表的最左边插入一个或多个元素（列表为空则创建）|O(1)|
-|LRUSHX|从列表的最左边插入一个或多个元素（列表为空时不做操作）|O(1)|
-|RPUSH|从列表的最右边插入一个或多个元素（列表为空则创建）|O(1)|
-|RPUSHX|从列表的最右边插入一个或多个元素（列表为空时不做操作）|O(1)|
-|LPOP|从列表的最左边弹出一个元素|O(1)|
-|RPOP|从列表的最右边弹出一个元素|O(1)|
-|BLPOP|弹出指定的多个列表中第一个元素（lpop阻塞版本）|O(1)|
-|BRPOP|弹出指定的多个列表中最后一个元素（rpop阻塞版本）|O(1)|
-|RPOPLPUSH|弹出列表A的最后一个元素，并将该元素插入到列表B的首位|O(1)|
-|BRPOPLPUSH|弹出列表A的最后一个元素，并将该元素插入到列表B的首位（rpoplpush阻塞版本）|O(1)|
-|LINDEX|获取索引位置的元素|平均O(N)，头尾O(1)|
-|LRANGE|从列表中获取指定位置的元素|O(S+N)，S是距离列表头部的偏移位置，N为指定范围元素数|
-|LINSERT|在列表中的另一个元素前或后插入一个元素|平均O(N)，头部O(1)|
-|LSET|设置index位置元素的值为value|平均O(N)，头尾O(1)|
-|LTRIM|修剪一个已存在的列表的大小|平均O(N)|
-|LREM|从列表中移除count个值为value的元素|O(N)|
-|LLEN|获得列表的长度|O(1)|
+| 命令       | 功能                                                                           | 时间复杂度                                             |
+| ---------- | ------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| LPUSH      | 从列表的最左边插入一个或多个元素（列表为空则创建）                             | O(1)                                                   |
+| LRUSHX     | 从列表的最左边插入一个或多个元素（列表为空时不做操作）                         | O(1)                                                   |
+| RPUSH      | 从列表的最右边插入一个或多个元素（列表为空则创建）                             | O(1)                                                   |
+| RPUSHX     | 从列表的最右边插入一个或多个元素（列表为空时不做操作）                         | O(1)                                                   |
+| LPOP       | 从列表的最左边弹出一个元素                                                     | O(1)                                                   |
+| RPOP       | 从列表的最右边弹出一个元素                                                     | O(1)                                                   |
+| BLPOP      | 弹出指定的多个列表中第一个元素（lpop 阻塞版本）                                | O(1)                                                   |
+| BRPOP      | 弹出指定的多个列表中最后一个元素（rpop 阻塞版本）                              | O(1)                                                   |
+| RPOPLPUSH  | 弹出列表 A 的最后一个元素，并将该元素插入到列表 B 的首位                       | O(1)                                                   |
+| BRPOPLPUSH | 弹出列表 A 的最后一个元素，并将该元素插入到列表 B 的首位（rpoplpush 阻塞版本） | O(1)                                                   |
+| LINDEX     | 获取索引位置的元素                                                             | 平均 O(N)，头尾 O(1)                                   |
+| LRANGE     | 从列表中获取指定位置的元素                                                     | O(S+N)，S 是距离列表头部的偏移位置，N 为指定范围元素数 |
+| LINSERT    | 在列表中的另一个元素前或后插入一个元素                                         | 平均 O(N)，头部 O(1)                                   |
+| LSET       | 设置 index 位置元素的值为 value                                                | 平均 O(N)，头尾 O(1)                                   |
+| LTRIM      | 修剪一个已存在的列表的大小                                                     | 平均 O(N)                                              |
+| LREM       | 从列表中移除 count 个值为 value 的元素                                         | O(N)                                                   |
+| LLEN       | 获得列表的长度                                                                 | O(1)                                                   |
 
 ## 函数功能总览
 
 ---
 
-``` c
+```c
 void blpopCommand(client *c); // blpop命令
 void brpopCommand(client *c); // brpop命令
 void brpoplpushCommand(client *c); // brpoplpush命令
@@ -57,20 +58,20 @@ void lremCommand(client *c); // lrem命令
 void lsetCommand(client *c); // lset命令
 ```
 
-## Redis命令实现
+## Redis 命令实现
 
 ---
 
 插入命令：
 
-``` c
+```c
 LPUSH key value [value ...]
 RPUSH key value [value ...]
 ```
 
 代码：
 
-``` c
+```c
 void lpushCommand(client *c) {
     pushGenericCommand(c,LIST_HEAD); // 列表头部插入
 }
@@ -112,7 +113,7 @@ void pushGenericCommand(client *c, int where) {
 
 其他与插入相关的命令不做代码解析了，可自行查看源码。
 
-``` c
+```c
 LPUSHX key value // 如果db中有该列表，则调用quicklistPush插入元素到列表头部，无列表则不做操作返回
 RPUSHX key value // 如果db中有该列表，则调用quicklistPush插入元素到列表尾部，无列表则不做操作返回
 LINSERT key BEFORE|AFTER pivot value // 使用quicklist迭代器查找到列表中对应的位置，然后在指定位置前或后插入元素
@@ -125,14 +126,14 @@ LSET key index value // 调用quicklistReplaceAtIndex修改指定位置的值
 
 弹出命令：
 
-``` c
+```c
 LPOP key
 RPOP key
 ```
 
-代码：  
+代码：
 
-``` c
+```c
 void lpopCommand(client *c) {
     popGenericCommand(c,LIST_HEAD); // 列表头部弹出
 }
@@ -167,7 +168,7 @@ void popGenericCommand(client *c, int where) {
 
 其他与插入相关的命令不做代码解析了，可自行查看源码。
 
-``` c
+```c
 BLPOP key [key ...] timeout
 BRPOP key [key ...] timeout
 ```
@@ -176,14 +177,14 @@ BRPOP key [key ...] timeout
 
 获取元素命令：
 
-``` c
+```c
 LINDEX key index
 LRANGE key start stop
 ```
 
-代码：  
+代码：
 
-``` c
+```c
 // LINDEX
 void lindexCommand(client *c) {
     robj *o = lookupKeyReadOrReply(c,c->argv[1],shared.null[c->resp]);
@@ -266,11 +267,11 @@ void lrangeCommand(client *c) {
 
 其他命令：
 
-``` c
+```c
 LTRIM key start stop
 LREM key count value
 /*
-* LREM count参数：  
+* LREM count参数：
 * count > 0: 从头往尾移除值为 value 的元素。
 * count < 0: 从尾往头移除值为 value 的元素。
 * count = 0: 移除所有值为 value 的元素。 */
@@ -278,9 +279,9 @@ LREM key count value
 LLEN key
 ```
 
-代码：  
+代码：
 
-``` c
+```c
 void ltrimCommand(client *c) {
     robj *o;
     long start, end, llen, ltrim, rtrim;
