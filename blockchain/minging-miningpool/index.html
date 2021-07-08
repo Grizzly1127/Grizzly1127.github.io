@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.grizzlys.top","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="1. 挖矿1.1 什么是挖矿挖矿的本质就是构造符合规则（PoW共识机制）的区块并进行全网验证的过程。作为激励，矿工成功挖掘到区块后，可以从中获取区块奖励和交易费奖励。 下面以BTC为例，阐述挖矿的运作流程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="挖矿与矿池">
+<meta property="og:url" content="https://blog.grizzlys.top/blockchain/minging-miningpool/index.html">
+<meta property="og:site_name" content="Grizzly">
+<meta property="og:description" content="1. 挖矿1.1 什么是挖矿挖矿的本质就是构造符合规则（PoW共识机制）的区块并进行全网验证的过程。作为激励，矿工成功挖掘到区块后，可以从中获取区块奖励和交易费奖励。 下面以BTC为例，阐述挖矿的运作流程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/lgS1IYWGuPKbrTN.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/Silnx2oewNPvURD.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/hsrc1zMva2n9tkI.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/qQo8PCYU3BSwexy.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/mV6sGop1d4iY2nQ.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/YrjJdNhtVQcRFn2.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/dyp6fKmPYNXLSCu.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/7mdoVCrY1W8xTOk.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/cawiHMVkBtgWI4N.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/AyrhiqYwXGoP15k.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/cnFzt4Khwe8HU7g.png">
+<meta property="og:image" content="https://i.loli.net/2021/07/08/cxTVYO489NPHmnF.png">
+<meta property="article:published_time" content="2021-07-08T04:47:30.000Z">
+<meta property="article:modified_time" content="2021-07-08T08:04:23.562Z">
+<meta property="article:author" content="李辉雄">
+<meta property="article:tag" content="blockchain">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/07/08/lgS1IYWGuPKbrTN.png">
+
+<link rel="canonical" href="https://blog.grizzlys.top/blockchain/minging-miningpool/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>挖矿与矿池 | Grizzly</title>
+  
+
+
+  <script data-pjax>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?9a8d6781d509714e86bffed13a6f0b71";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Grizzly" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Grizzly</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">博观而约取，厚积而薄发</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-redis">
+
+    <a href="/categories/Redis" rel="section"><i class="snake fa-fw"></i>Redis</a>
+
+  </li>
+        <li class="menu-item menu-item-c++">
+
+    <a href="/categories/c" rel="section"><i class="copyright fa-fw"></i>c++</a>
+
+  </li>
+        <li class="menu-item menu-item-golang">
+
+    <a href="/categories/golang" rel="section"><i class="google fa-fw"></i>golang</a>
+
+  </li>
+        <li class="menu-item menu-item-vim">
+
+    <a href="/categories/vim" rel="section"><i class="vimeo-v fa-fw"></i>vim</a>
+
+  </li>
+        <li class="menu-item menu-item-计算机网络">
+
+    <a href="/categories/net" rel="section"><i class="th fa-fw"></i>计算机网络</a>
+
+  </li>
+        <li class="menu-item menu-item-数据结构与算法">
+
+    <a href="/categories/DataStructure" rel="section"><i class="th fa-fw"></i>数据结构与算法</a>
+
+  </li>
+        <li class="menu-item menu-item-区块链技术">
+
+    <a href="/categories/blockchain" rel="section"><i class="th fa-fw"></i>区块链技术</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.grizzlys.top/blockchain/minging-miningpool/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="学习、记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          挖矿与矿池
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-07-08 12:47:30 / 修改时间：16:04:23" itemprop="dateCreated datePublished" datetime="2021-07-08T12:47:30+08:00">2021-07-08</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/blockchain/" itemprop="url" rel="index"><span itemprop="name">blockchain</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="1-挖矿"><a href="#1-挖矿" class="headerlink" title="1. 挖矿"></a>1. 挖矿</h2><h3 id="1-1-什么是挖矿"><a href="#1-1-什么是挖矿" class="headerlink" title="1.1 什么是挖矿"></a>1.1 什么是挖矿</h3><p>挖矿的本质就是构造符合规则（PoW共识机制）的区块并进行全网验证的过程。作为激励，矿工成功挖掘到区块后，可以从中获取区块奖励和交易费奖励。</p>
+<p>下面以BTC为例，阐述挖矿的运作流程。</p>
+<a id="more"></a>
+<h3 id="1-2-BTC如何挖矿？"><a href="#1-2-BTC如何挖矿？" class="headerlink" title="1.2 BTC如何挖矿？"></a>1.2 BTC如何挖矿？</h3><p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/lgS1IYWGuPKbrTN.png" alt="block_package.png"></p>
+<p>上面这张图描述了如何构造一个比特币区块。区块构造流程：</p>
+<ol>
+<li>从未确定交易池中选取交易，通常尽可能多的优先选择手续费高的交易。</li>
+<li>构造coinbase交易，计算打包交易中的挖矿手续费和coinbase奖励。</li>
+<li>矿工将所有交易（包含coinbase交易）添加到区块体中。</li>
+<li>对所有交易（包含coinbase交易）进行hash计算，并构造出merkle树，得到merkle树根哈希值。</li>
+<li>根据当前环境填充区块头中的当前版本、父区块哈希、时间戳和难度，自行填写nNonce，与得到的merkle树根哈希值一同构成区块头。</li>
+</ol>
+<p>完成以上步骤，一个比特币区块就构建好了。</p>
+<h3 id="1-3-BTC挖矿过程"><a href="#1-3-BTC挖矿过程" class="headerlink" title="1.3 BTC挖矿过程"></a>1.3 BTC挖矿过程</h3><p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/Silnx2oewNPvURD.png" alt="block_verify.png"></p>
+<p>下面我们来看一下比特币的挖矿验证过程：</p>
+<ol>
+<li>区块打包成功后，对区块中的区块头进行hash256运算并得到结果。</li>
+<li><p>将区块头哈希值与当前target（由nBits解压得来的）比对，这时比对结果会有两种情况：</p>
+<ul>
+<li>若区块头哈希值大于target，则表明不符合规则，需要重新构造区块头继续循环验证。</li>
+<li>若区块头哈希值小于等于target，则全网节点广播验证，节点验证成功后，成功加入到区块链中。<br>以上就是比特币挖矿的全过程。</li>
+</ul>
+</li>
+</ol>
+<p>在区块头中，当前版本、父区块哈希、难度是固定不可改变的，那么想要改变区块头哈希值，需要调整nNonce、nTime和coinbase交易，而交易merkle树根的哈希值会随着coinbase交易的改变而改变。</p>
+<h3 id="1-4-BTC的coinbase结构"><a href="#1-4-BTC的coinbase结构" class="headerlink" title="1.4 BTC的coinbase结构"></a>1.4 BTC的coinbase结构</h3><p>我们来看一下coinbase交易的结构，在下面的表格中可以看到在coinbase交易中，唯一能改变的就是coinbase data这个字段。所以该字段数据可由矿工自定义，用于增加区块头哈希的搜索空间。</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Size</th>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32 bytes</td>
+<td>Transaction Hash</td>
+<td>32字节全部为0</td>
+</tr>
+<tr>
+<td>4 bytes</td>
+<td>Output Index</td>
+<td>固定值：0xFFFFFFFF</td>
+</tr>
+<tr>
+<td>1-9 bytes(VarInt)</td>
+<td>Coinbase Data size</td>
+<td>coinbase数据的长度</td>
+</tr>
+<tr>
+<td>Variable</td>
+<td>Coinbase Data</td>
+<td>数据由矿工自定义，用于增加搜索空间</td>
+</tr>
+<tr>
+<td>4 bytes</td>
+<td>Sequence Number</td>
+<td>固定值：0xFFFFFFFF</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="1-5-BTC中目标、难度概念理解"><a href="#1-5-BTC中目标、难度概念理解" class="headerlink" title="1.5 BTC中目标、难度概念理解"></a>1.5 BTC中目标、难度概念理解</h3><p>我们前面说过，比特币挖矿需要<code>区块头的哈希值</code>与<code>当前的目标</code>进行对比。所以我们需要理解一下什么是目标、什么是难度。</p>
+<p><strong>目标（target）</strong>：矿工计算的区块HASH值需要小于等于目标值才能有效出块。<br><strong>难度（difficulty）</strong>：难度是对挖矿困难程度的度量，即指：计算符合给定目标的一个Hash值的困难程度。<br><strong>nBits</strong>：目标值被压缩在区块头的nBits字段中，nBits字段以十六进制表示，总共有4个字节，前1个字节为<code>指数（exponent）</code>，后3个字节为<code>系数（coefficient）</code>。</p>
+<p>目标可由nBits计算得到，目标计算公式如下：</p>
+<blockquote>
+<p>target = coefficient * 256^(exponent - 0x03)</p>
+</blockquote>
+<p>而难度由目标计算得到，难度计算公式如下：</p>
+<blockquote>
+<p>difficulty = 创世区块target / 当前区块target</p>
+</blockquote>
+<p>从比特币区块浏览器中可以查到，创世区块的nBits为<code>0x1D00FFFF</code>，其中指数为<code>0x1D</code>，系数为<code>0x00FFFF</code>，将其代入到目标计算公式中，可得创世区块的目标值：</p>
+<blockquote>
+<p>target = 0x00FFFF * 256^(0x1D - 0x03)</p>
+<p>target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000</p>
+</blockquote>
+<p>我们以高度为<code>686,580</code>这个高度区块为例子：</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/hsrc1zMva2n9tkI.png" alt="block_case.png"></p>
+<p>通过公式，可以计算出：</p>
+<blockquote>
+<p>current_target = 0x0d5f7b * 256^(0x17 - 0x03)</p>
+<p>current_target = 0x0000000000000000000d5f7b0000000000000000000000000000000000000000</p>
+</blockquote>
+<p>得到了当前的目标值与创世区块目标值，通过难度公式，可计算出高度<code>686,580</code>的难度为：</p>
+<blockquote>
+<p>difficulty = init_target / current_target = 21,047,730,572,451 ≈ 21.05T</p>
+</blockquote>
+<h3 id="1-6-能不能一次挖多个币呢？"><a href="#1-6-能不能一次挖多个币呢？" class="headerlink" title="1.6 能不能一次挖多个币呢？"></a>1.6 能不能一次挖多个币呢？</h3><p><strong>答案是肯定的。</strong></p>
+<p>当前存在一种机制，可以使得矿工在不影响挖比特币的同时，还能顺带挖另外几种虚拟币，以增加额外的收入，该机制就是联合挖矿。</p>
+<h2 id="2-联合挖矿"><a href="#2-联合挖矿" class="headerlink" title="2. 联合挖矿"></a>2. 联合挖矿</h2><h3 id="2-1-ViaBTC矿池联合挖矿赠币规则"><a href="#2-1-ViaBTC矿池联合挖矿赠币规则" class="headerlink" title="2.1 ViaBTC矿池联合挖矿赠币规则"></a>2.1 ViaBTC矿池联合挖矿赠币规则</h3><p>目前许多主流的矿池都上线了挖矿赠币业务，例如在我们的矿池服务中，挖BTC可以额外获得NMC、EMC、SYS和ELA的赠币，挖LTC可以额外获得DOGE的赠币。</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/qQo8PCYU3BSwexy.png" alt="merge_mining_rule.png"></p>
+<p>下面我们来看一下联合挖矿的实现原理。</p>
+<h3 id="2-2-联合挖矿实现"><a href="#2-2-联合挖矿实现" class="headerlink" title="2.2 联合挖矿实现"></a>2.2 联合挖矿实现</h3><ol>
+<li><p>通过 rpc 调用辅链节点的 <code>getauxblock</code> 或者 <code>createauxblock</code> 方法，创建新块。返回结果如下：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;hash&quot;                (string) hash of the created block</span><br><span class="line">  &quot;chainid&quot;             (numeric) chain ID for this block</span><br><span class="line">  &quot;previousblockhash&quot;   (string) hash of the previous block</span><br><span class="line">  &quot;coinbasevalue&quot;       (numeric) value of the block&#x27;s coinbase</span><br><span class="line">  &quot;bits&quot;                (string) compressed target of the block</span><br><span class="line">  &quot;height&quot;              (numeric) height of the block</span><br><span class="line">  &quot;_target&quot;             (string) target in reversed byte order, deprecated</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>在Bitcoin的coinbase交易中，coinbase data字段可以写入任意自定义数据，那么通过写入规定格式的数据。我们在coinbase的coinbase data中添加以下信息：</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/mV6sGop1d4iY2nQ.png" alt="coinbase_structure.png"></p>
+<p>当有多条辅链时，需要用多条辅链的block_hash来构建出merkle树。那么就需要考虑辅链在merkle树底部的插槽位置。使用以下算法将chain ID转换为辅链的block_hash所在的merkle树的插槽位置：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">cal_merkle_index</span><span class="params">(<span class="keyword">int</span> chain_id, <span class="keyword">int</span> nonce, <span class="keyword">int</span> size)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> rand = nonce;</span><br><span class="line">    rand = rand * <span class="number">1103515245</span> + <span class="number">12345</span>;</span><br><span class="line">    rand += chain_id;</span><br><span class="line">    rand = rand * <span class="number">1103515245</span> + <span class="number">12345</span>;</span><br><span class="line">    <span class="keyword">return</span> rand % size;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>矿工照常以挖比特币的方式挖矿，但有一点不同的是，需要判断以下三种情况：</p>
+<ul>
+<li>btc_hash_value &lt;= btc_target：矿工广播区块，矿工可以得到BTC的挖矿奖励和NMC辅链的挖矿奖励。</li>
+<li>btc_target &lt; btc_hash_value &lt;= aux_target：矿工广播区块，矿工不能获取BTC的挖矿奖励，但是能获取辅链的挖矿奖励。</li>
+<li>btc_hash_value &gt; aux_target：矿工不会广播。</li>
+</ul>
+</li>
+<li><p>当矿工挖出区块后，通过 rpc 调用辅链节点的 <code>submitauxblock</code> 方法提交区块验证，参数与结果如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Arguments:</span><br><span class="line">1. hash       (string, required) Hash of the block to submit</span><br><span class="line">2. auxpow     (string, required) Serialised auxpow found</span><br><span class="line"></span><br><span class="line">Result:</span><br><span class="line">xxxxx         (boolean) whether the submitted block was correct</span><br></pre></td></tr></table></figure>
+<p>其中，auxpow包含以下内容：</p>
+</li>
+</ol>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>Size</th>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Variable</td>
+<td>coinbase</td>
+<td>主链的coinbase信息</td>
+</tr>
+<tr>
+<td>32 bytes</td>
+<td>block_hash</td>
+<td>主链区块hash值</td>
+</tr>
+<tr>
+<td>Variable</td>
+<td>coinbase_branch</td>
+<td>主链的交易merkle分支</td>
+</tr>
+<tr>
+<td>Variable</td>
+<td>blockchain_branch</td>
+<td>多个辅链的merkle分支</td>
+</tr>
+<tr>
+<td>80 bytes</td>
+<td>parent_block</td>
+<td>主链区块头信息</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="2-3-个人（solo）挖矿的劣势"><a href="#2-3-个人（solo）挖矿的劣势" class="headerlink" title="2.3 个人（solo）挖矿的劣势"></a>2.3 个人（solo）挖矿的劣势</h3><p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/YrjJdNhtVQcRFn2.png" alt="solo_mining.png"></p>
+<p>随着挖矿的人越来越多，挖矿设备也从cpu到显卡gpu再到专业矿机，算力越来越大，独立矿工挖到区块的概率越来越小，收益也越来越低，如果继续投入资金购买电脑，显卡、矿机等硬件设备，会大大提高成本，风险也越来越大，所以很多矿工不会选择 Solo 挖矿这种投资方式。</p>
+<p>劣势：</p>
+<ol>
+<li>硬盘和带宽要求大</li>
+<li>挖矿成功概率极低</li>
+</ol>
+<p>于是就有人提出把大家的算力集中在一起挖矿，算力大了，挖到区块的概率就会大大提高，然后再根据每个参与的矿工所占算力配额来进行奖励分配。<br>使用这种方法建立的特殊节点，就是矿池。</p>
+<h2 id="3-矿池"><a href="#3-矿池" class="headerlink" title="3 矿池"></a>3 矿池</h2><h3 id="3-1-简介"><a href="#3-1-简介" class="headerlink" title="3.1 简介"></a>3.1 简介</h3><p>我们来看一下这张图，左边是区块链网络，上面这个是solo矿工，相比于全网算力来说自身的算力非常小，挖矿成功的概率也极小，下面的是矿池。</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/dyp6fKmPYNXLSCu.png" alt="pool.png"></p>
+<p>矿池是矿工的<strong>集合地</strong>，任何矿工都可以加入，无论个体还是组织，无论专业还是业余，都能为矿池提供自己的一份算力。加入到矿池的矿工挖到矿后，获得的奖励会被分配到矿池，然后矿池再根据预先设定的分红规则并结合各个矿工的算力进行奖励发放。<br>加入到矿池的矿工，只需要做一件事，那就是不停的计算矿池下发的任务，算出符合矿池难度的区块就进行提交。<br>矿池的工作就是需要对矿工进行管理，统计矿工算力和贡献，挖矿任务管理等。<br>矿池与矿工之间使用的是stratum矿池协议进行交互的，这是很重要的交互协议。</p>
+<h3 id="3-2-stratum矿池协议"><a href="#3-2-stratum矿池协议" class="headerlink" title="3.2 stratum矿池协议"></a>3.2 stratum矿池协议</h3><p>stratum矿池协议有很多方法，最重要的就是以下几种方法：</p>
+<ul>
+<li><p><strong>订阅消息（mining.subscribe）</strong></p>
+<p>矿机想参与挖矿，需要主动连接到矿池，向矿池申请加入挖矿，一般会附带自己挖矿软件的版本。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">矿机消息：</span><br><span class="line">&#123;&quot;id&quot;:1,&quot;method&quot;:&quot;mining.subscribe&quot;,&quot;params&quot;:[version]&#125;\n</span><br><span class="line">矿池响应消息：</span><br><span class="line">&#123;&quot;id&quot;:1,&quot;result&quot;:[[[&quot;mining.set_difficulty&quot;,&quot;1&quot;],[&quot;mining.notify&quot;,&quot;1&quot;]],&quot;&#123;extraNonce1&#125;&quot;,&#123;extraNonce2_len&#125;],“error”:null&#125;\n</span><br></pre></td></tr></table></figure>
+<p><strong>extraNonce1</strong>：该字段由矿池为矿工分配，为了确保每个矿工不会做重复工作。<br><strong>extraNonce2_len</strong>：设定extraNonce2字段的长度，一般为4或8个字节，矿工挖矿时，通过该字段增加搜索空间。<br>现在，我们至少有了8个字节的搜索空间，即<code>nNonce</code>的4个字节，以及<code>extraNonce2</code>的4个字节。</p>
+</li>
+<li><p><strong>授权消息（mining.authorize）</strong></p>
+<p>矿机使用帐号和密码登录到矿池，矿池返回true则登录成功。该方法必须是在初始化连接之后马上进行，否则矿机得不到矿池任务。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">矿机消息：</span><br><span class="line">&#123;&quot;id&quot;:2,&quot;method&quot;:&quot;mining.authorize&quot;,&quot;params&quot;:[&quot;&#123;account&#125;&quot;,&quot;&#123;password&#125;&quot;]&#125;\n</span><br><span class="line">矿池响应消息：</span><br><span class="line">&#123;&quot;id&quot;:2,&quot;result&quot;:true,&quot;error&quot;:null&#125;\n</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>下发难度（mining.set_difficulty）</strong></p>
+<p>矿机被授权后，那么矿池会下发任务难度给矿机，后面矿机的挖矿，必须达到任务难度要后，矿池才登记贡献。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">矿池发送消息：</span><br><span class="line">&#123;&quot;id&quot;:null,&quot;method&quot;:&quot;mining.set_difficulty&quot;,&quot;params&quot;:[&#123;难度值&#125;]&#125;\n</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>下发任务（mining.notify）</strong></p>
+<p>矿池会不断向矿机下发任务，矿机接到任务后，根据任务的标示，可以继续挖上一个任务，还是立即开始新的任务挖矿。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">矿池发送消息：</span><br><span class="line">&#123;&quot;id&quot;:null,&quot;method&quot;:&quot;mining.notify&quot;,&quot;params&quot;:[&quot;&#123;jobId&#125;&quot;,&quot;&#123;prev hash&#125;&quot;,&quot;&#123;coinbase1&#125;&quot;,&quot;&#123;coinbase2&#125;&quot;,[&#123;区块交易merkle_branch&#125;],&quot;&#123;version&#125;&quot;,&quot;&#123;nBits&#125;&quot;,&quot;&#123;nTime&#125;&quot;,&#123;是否立即更换任务&#125;]&#125;\n</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>提交消息（mining.submit）</strong></p>
+<p>矿机根据挖矿任务开始挖矿，直到发现了满足矿池难度的区块后，将构造区块头必要的信息提交给矿池验证并广播。</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">矿机消息：</span><br><span class="line">&#123;&quot;id&quot;:3,&quot;method&quot;:&quot;mining.submit&quot;,&quot;params&quot;:[&quot;&#123;account&#125;&quot;,&quot;&#123;jobId&#125;&quot;,&quot;&#123;extraNonce2&#125;&quot;,&quot;&#123;time&#125;&quot;,&quot;&#123;nonce&#125;&quot;]&#125;\n</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h3 id="3-3-如何增加矿工的搜索空间"><a href="#3-3-如何增加矿工的搜索空间" class="headerlink" title="3.3 如何增加矿工的搜索空间"></a>3.3 如何增加矿工的搜索空间</h3><p>如果仅仅给矿工可以改变nNonce（4字节，搜索空间4294967296大约43亿）和nTime（可变动范围很小）字段，则交互的数据量很少，但这点搜索空间肯定是不够的。<br>想要增加搜索，只能从<code>hashMerkleRoot</code>下功夫，如果让矿工自己构造coinbase，进而影响hashMerkleRoot值，那么搜索空间的问题将迎刃而解。<br>而构造Merkle树并不需要所有的交易数据，只需要某几个节点上的hash值，即可计算出修改coinbase后的hashMerkleRoot值。如下图：</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/7mdoVCrY1W8xTOk.png" alt="merkle_branch.png"></p>
+<p>我们将交易列表顺序固定下来后，只需要将merkle树中的一小部分节点的哈希值发给矿工，矿工就可以根据这些节点进行计算得到merkle树根。</p>
+<h3 id="3-4-矿工的挖矿步骤"><a href="#3-4-矿工的挖矿步骤" class="headerlink" title="3.4 矿工的挖矿步骤"></a>3.4 矿工的挖矿步骤</h3><ol>
+<li><p>构造coinbase交易</p>
+<blockquote>
+<p>coinbase = coinbase1 + extraNonce1 + extraNonce2 + coinbase2</p>
+</blockquote>
+<p>对于矿工来说，<code>coinbase1</code>、<code>extraNonce1</code>、<code>coinbase2</code>都是固定的，这是由矿池来填写，矿工只关心 <code>extraNonce2</code> 的长度。矿工生成指定长度的<code>extraNonce2</code>来增加搜索空间。</p>
+</li>
+<li><p>构建hashMerkleRoot</p>
+<p>利用coinbase和merkle_branch，生成hashMerkleRoot。</p>
+</li>
+<li><p>构建区块头</p>
+<p>填充余下的5个字段，现在，矿工可以在 nTime、nNonce 和 extraNonce2 里搜索进行挖矿，如果嫌搜索空间还不够，只要增加Extranonce2_size为多几个字节就可轻而易举解决。</p>
+</li>
+</ol>
+<h2 id="4-ViaBTC矿池实现"><a href="#4-ViaBTC矿池实现" class="headerlink" title="4. ViaBTC矿池实现"></a>4. ViaBTC矿池实现</h2><p>项目路径：<a target="_blank" rel="noopener" href="https://github.com/viabtc/viabtc_mining_server">https://github.com/viabtc/viabtc_mining_server</a></p>
+<h3 id="4-1-ViaBTC矿池架构图"><a href="#4-1-ViaBTC矿池架构图" class="headerlink" title="4.1 ViaBTC矿池架构图"></a>4.1 ViaBTC矿池架构图</h3><p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/cawiHMVkBtgWI4N.png" alt="mining_pool_arch.png"></p>
+<p>这张图是viabtc矿池的server层架构图，接下来我将讲解每个服务的作用与功能。</p>
+<h3 id="4-2-bitpeer"><a href="#4-2-bitpeer" class="headerlink" title="4.2 bitpeer"></a>4.2 bitpeer</h3><p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/AyrhiqYwXGoP15k.png" alt="bitpeer.png"></p>
+<ul>
+<li>bitpeer实现了btc的p2p网络协议，可以把它当成是一个简化版的BTC节点，实现了p2p的部分功能。</li>
+<li>部署多个bitpeer，可加速区块在btc网络中的广播。</li>
+<li>当区块高度更新时，需要通知jobmaster放弃旧块的挖掘转而开始新块任务</li>
+</ul>
+<h3 id="4-3-blockmaster"><a href="#4-3-blockmaster" class="headerlink" title="4.3 blockmaster"></a>4.3 blockmaster</h3><p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/cnFzt4Khwe8HU7g.png" alt="blockmaster.png"></p>
+<p>blockmaster的主要功能有：</p>
+<ol>
+<li><p>将矿工挖掘到的区块发送给bitpeer进行广播。</p>
+</li>
+<li><p>为了更快的进行区块广播，blockmaster将区块处理成瘦块广播。</p>
+</li>
+</ol>
+<p><strong>瘦块原理：</strong></p>
+<p>为了更快的进行区块广播，blockmaster将区块处理成瘦块，原理是剔除掉区块交易（不包括coinbase交易）中除了交易哈希值之外的交易信息，因为交易详细信息可通过交易哈希值向节点查询，所以大大减少了区块的大小，瘦块在网络上传输将会加快，将瘦块发送给其他地区的blockmaster组装成完整的区块进行广播。</p>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2021/07/08/cxTVYO489NPHmnF.png" alt="thin_block.png"></p>
+<p><code>bitpeer</code> 和 <code>blockmaster</code> 这两个服务的主要功能是为了加速区块的广播，毕竟比别人先一步将区块进行广播到全网验证，就能抢先一步将区块加到链中，获得奖励。</p>
+<h3 id="4-3-jobmaster"><a href="#4-3-jobmaster" class="headerlink" title="4.3 jobmaster"></a>4.3 jobmaster</h3><p>主要功能：</p>
+<ol>
+<li><p>构造区块信息给gateway发送挖矿任务。</p>
+</li>
+<li><p>接收gateway提交的区块，并进行广播。</p>
+</li>
+</ol>
+<h3 id="4-4-gateway"><a href="#4-4-gateway" class="headerlink" title="4.4 gateway"></a>4.4 gateway</h3><p>主要功能：</p>
+<ol>
+<li>管理矿工、矿场管理员。</li>
+<li>矿工难度值动态调整。</li>
+<li>实现stratum矿池协议与矿工交互。</li>
+<li><p>测算各个矿工的算力。</p>
+</li>
+<li><p>验证矿工提交的share，并进行验证统计。</p>
+</li>
+</ol>
+<h3 id="4-5-poolbench"><a href="#4-5-poolbench" class="headerlink" title="4.5 poolbench"></a>4.5 poolbench</h3><p>监控其他矿池的状态，如果其他矿池的区块高度有更新，则通知jobmaster开始挖新块。</p>
+<h3 id="4-6-mineragent"><a href="#4-6-mineragent" class="headerlink" title="4.6 mineragent"></a>4.6 mineragent</h3><ol>
+<li>gateway代理，从gateway接收挖块任务。</li>
+<li><p>实现stratum协议，为矿工分配任务。</p>
+</li>
+<li><p>主要用于矿机数量庞大的矿场，部署在矿场中，可以有效节省带宽，提升性能。</p>
+</li>
+</ol>
+<h3 id="4-7-算力统计"><a href="#4-7-算力统计" class="headerlink" title="4.7 算力统计"></a>4.7 算力统计</h3><p>为统计矿工的算力贡献，矿池会为每个矿工设置难度值，当矿工挖掘的区块达到难度值要求时，就提交一次share，矿池可通过矿工难度测算出矿工的算力。<br>矿池要求矿工大约每4秒提交一次share，那么，如何控制矿工难度来达到该要求呢？</p>
+<ol>
+<li>新的矿工连接到矿池，矿池会为矿工分配一个默认难度值（1024）。</li>
+<li>矿池给矿工下发任务和该难度值，矿工开始挖矿。</li>
+<li>矿工挖出区块达到该难度值的要求后，提交share给矿池。</li>
+<li>矿池收到后，判断矿工此次提交的share是否有效，有效则记录此次提交的时间间隔，计算此次矿工的工作量与挖矿难度的比例（goal），矿池计算矿工多次提交share的平均时间（avg）后，进行如下判断：<ul>
+<li>如果avg大于4s，并且（avg / 4s）大于1.5，则矿工难度值需要<strong>减半</strong>。</li>
+<li>如果avg小于4s，并且（avg / 4s）小于0.7，则矿工难度值需要<strong>增加一倍</strong>。</li>
+</ul>
+</li>
+<li>每次有效提交share，矿池会将矿工的<code>难度值</code>、<code>有效提交share次数</code>和 <code>goal</code> 收集起来，每隔60秒将数据提交给metawriter，metawriter会将数据记录到redis，用于计算矿工的收益。</li>
+</ol>
+<h3 id="4-8-收益结算"><a href="#4-8-收益结算" class="headerlink" title="4.8 收益结算"></a>4.8 收益结算</h3><p>矿池常用的分红规则如下：</p>
+<ul>
+<li><p><strong>PPS（pay per share）</strong></p>
+<p>矿池对矿工提交的每一个工作量证明 (share) 按照理论收益付费，相当于矿工给矿池打工，根据提供的算力稳定获取收益。 由于矿工不承担风险，矿池承担了运气风险和孤块风险，所以收取相对较高的费用。</p>
+</li>
+<li><p><strong>PPLNS（Pay Per Last N Shares）</strong></p>
+<p>矿池每发现有效的区块， 根据过去 N 个难度周期中用户算力占矿池算力的比例进行分配，矿工费也参与分配。 矿池收取相对较少的费用，用于矿池的运营和维护。 这种方式下矿工的收益和矿池的出块相关，矿工收益不稳定，但长期平均收益更高。</p>
+</li>
+<li><p><strong>PPS+（Pay Per Share Plus）</strong></p>
+<p>对传统 PPS 结算方式的一种改进，在传统的 PPS 结算方式基础上，增加了矿工费的分配。 在这种方式下，矿池对矿工提交的每一个工作量证明 (share) 按照理论收益付费，相当于矿工给矿池打工，根据提供的算力稳定获取收益。 由于矿工不承担风险，矿池承担了运气风险和孤块风险，所以收取相对较高的费用。 矿工费另外通过下述的 PPLNS 方式分配给矿工。</p>
+</li>
+<li><p><strong>SOLO</strong></p>
+<p>全部收益分配给挖出该块的矿工，其他矿工不参与分配，矿池收取极少手续费，用于矿池运营和维护。</p>
+</li>
+</ul>
+<p>ViaBTC矿池支持三种结算方式：PPS+、PPLNS和SOLO。默认为PPS+结算方式。</p>
+<p><strong>PPS+模式：</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>挖矿收益</th>
+<th>块奖励</th>
+<th>交易费（不固定）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>结算方式</td>
+<td>PPS</td>
+<td>PPLNS</td>
+</tr>
+<tr>
+<td>费率</td>
+<td>4%</td>
+<td>2%</td>
+</tr>
+<tr>
+<td>计算公式</td>
+<td>工作量 / 挖矿难度 <em> 块奖励 </em> (1 - 费率)</td>
+<td>用户算力 / 矿池算力 <em> 块收益 </em> (1 - 费率)</td>
+</tr>
+<tr>
+<td>分配规则</td>
+<td>每个小时根据当前难度结算一次</td>
+<td>区块得到6次确认后，根据过去5个难度周期内用户算力占矿池算力的比例进行分配</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>PPLNS 模式：</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>挖矿收益</th>
+<th>块奖励 + 交易费（不固定）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>费率</td>
+<td>2%</td>
+</tr>
+<tr>
+<td>计算方式</td>
+<td>用户算力／矿池算力 <em> 挖矿收益 </em>（1 - 费率）</td>
+</tr>
+<tr>
+<td>分配规则</td>
+<td>区块得到6次确认后，根据过去5个难度周期内用户算力占矿池算力的比例进行分配</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>SOLO 模式：</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>挖矿收益</th>
+<th>块奖励 + 交易费（不固定）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>费率</td>
+<td>1%</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>联合挖矿：</strong></p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>币</th>
+<th>规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BTC</td>
+<td>每挖 1 个 BTC 赠送 1 个 NMC</td>
+</tr>
+<tr>
+<td>BTC</td>
+<td>每挖 1 个 BTC 赠送 5 个 SYS</td>
+</tr>
+<tr>
+<td>BTC</td>
+<td>每挖 1 个 BTC 赠送 0.1 个 EMC</td>
+</tr>
+<tr>
+<td>BTC</td>
+<td>每挖 1 个 BTC 赠送 1 个 ELA</td>
+</tr>
+<tr>
+<td>BCH</td>
+<td>每挖 1 个 BCH 赠送 1 个 SYS</td>
+</tr>
+<tr>
+<td>LTC</td>
+<td>挖 LTC 送 DOGE，按 PPLNS 模式结算</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>李辉雄
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://blog.grizzlys.top/blockchain/minging-miningpool/" title="挖矿与矿池">https://blog.grizzlys.top/blockchain/minging-miningpool/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/blockchain/" rel="tag"># blockchain</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/DataStructure/binary-tree-traversal/" rel="prev" title="二叉树的前中后序递归法和迭代法">
+      <i class="fa fa-chevron-left"></i> 二叉树的前中后序递归法和迭代法
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E6%8C%96%E7%9F%BF"><span class="nav-number">1.</span> <span class="nav-text">1. 挖矿</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-%E4%BB%80%E4%B9%88%E6%98%AF%E6%8C%96%E7%9F%BF"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 什么是挖矿</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-BTC%E5%A6%82%E4%BD%95%E6%8C%96%E7%9F%BF%EF%BC%9F"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 BTC如何挖矿？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-BTC%E6%8C%96%E7%9F%BF%E8%BF%87%E7%A8%8B"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 BTC挖矿过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-BTC%E7%9A%84coinbase%E7%BB%93%E6%9E%84"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 BTC的coinbase结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-BTC%E4%B8%AD%E7%9B%AE%E6%A0%87%E3%80%81%E9%9A%BE%E5%BA%A6%E6%A6%82%E5%BF%B5%E7%90%86%E8%A7%A3"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 BTC中目标、难度概念理解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-%E8%83%BD%E4%B8%8D%E8%83%BD%E4%B8%80%E6%AC%A1%E6%8C%96%E5%A4%9A%E4%B8%AA%E5%B8%81%E5%91%A2%EF%BC%9F"><span class="nav-number">1.6.</span> <span class="nav-text">1.6 能不能一次挖多个币呢？</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E8%81%94%E5%90%88%E6%8C%96%E7%9F%BF"><span class="nav-number">2.</span> <span class="nav-text">2. 联合挖矿</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-ViaBTC%E7%9F%BF%E6%B1%A0%E8%81%94%E5%90%88%E6%8C%96%E7%9F%BF%E8%B5%A0%E5%B8%81%E8%A7%84%E5%88%99"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 ViaBTC矿池联合挖矿赠币规则</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E8%81%94%E5%90%88%E6%8C%96%E7%9F%BF%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 联合挖矿实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%B8%AA%E4%BA%BA%EF%BC%88solo%EF%BC%89%E6%8C%96%E7%9F%BF%E7%9A%84%E5%8A%A3%E5%8A%BF"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 个人（solo）挖矿的劣势</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%9F%BF%E6%B1%A0"><span class="nav-number">3.</span> <span class="nav-text">3 矿池</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E7%AE%80%E4%BB%8B"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 简介</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-stratum%E7%9F%BF%E6%B1%A0%E5%8D%8F%E8%AE%AE"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 stratum矿池协议</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E5%A6%82%E4%BD%95%E5%A2%9E%E5%8A%A0%E7%9F%BF%E5%B7%A5%E7%9A%84%E6%90%9C%E7%B4%A2%E7%A9%BA%E9%97%B4"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 如何增加矿工的搜索空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E7%9F%BF%E5%B7%A5%E7%9A%84%E6%8C%96%E7%9F%BF%E6%AD%A5%E9%AA%A4"><span class="nav-number">3.4.</span> <span class="nav-text">3.4 矿工的挖矿步骤</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-ViaBTC%E7%9F%BF%E6%B1%A0%E5%AE%9E%E7%8E%B0"><span class="nav-number">4.</span> <span class="nav-text">4. ViaBTC矿池实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-ViaBTC%E7%9F%BF%E6%B1%A0%E6%9E%B6%E6%9E%84%E5%9B%BE"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 ViaBTC矿池架构图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-bitpeer"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 bitpeer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-blockmaster"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 blockmaster</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-jobmaster"><span class="nav-number">4.4.</span> <span class="nav-text">4.3 jobmaster</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-gateway"><span class="nav-number">4.5.</span> <span class="nav-text">4.4 gateway</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-5-poolbench"><span class="nav-number">4.6.</span> <span class="nav-text">4.5 poolbench</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-6-mineragent"><span class="nav-number">4.7.</span> <span class="nav-text">4.6 mineragent</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-7-%E7%AE%97%E5%8A%9B%E7%BB%9F%E8%AE%A1"><span class="nav-number">4.8.</span> <span class="nav-text">4.7 算力统计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-8-%E6%94%B6%E7%9B%8A%E7%BB%93%E7%AE%97"><span class="nav-number">4.9.</span> <span class="nav-text">4.8 收益结算</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="李辉雄"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">李辉雄</p>
+  <div class="site-description" itemprop="description">学习、记录</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">42</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">李辉雄</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="/lib/canvas-ribbon/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '83e621afbb975e7ae373',
+      clientSecret: '51509442793886cbca7c0d7508b24c3ae0e38d28',
+      repo        : 'blog_comments',
+      owner       : 'Grizzly1127',
+      admin       : ['Grizzly1127'],
+      id          : '82d496d61540cab028720f9b6bfb0446',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+<script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(e.href.match(t)||e.href.match(r))&&(e.href=a.dataset.original)})});</script><script>!function(n){n.imageLazyLoadSetting.processImages=o;var i=n.imageLazyLoadSetting.isSPA,r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]"));function o(){i&&(r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")));for(var t,e,a=0;a<r.length;a++)t=r[a],e=void 0,0<=(e=t.getBoundingClientRect()).bottom&&0<=e.left&&e.top<=(n.innerHeight||document.documentElement.clientHeight)&&function(){var t,e,n,i,o=r[a];t=o,e=function(){r=r.filter(function(t){return o!==t})},n=new Image,i=t.getAttribute("data-original"),n.onload=function(){t.src=i,e&&e()},n.src=i}()}o(),n.addEventListener("scroll",function(){var t,e;t=o,e=n,clearTimeout(t.tId),t.tId=setTimeout(function(){t.call(e)},500)})}(this);</script></body>
+</html>

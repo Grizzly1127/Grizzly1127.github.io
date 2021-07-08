@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.grizzlys.top","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="源码位置：listpack.c&#x2F;listpack.h Redis 5.0版本引入的一个新的数据结构，它是对ziplist压缩列表的改进，listpack结构更为精简，更加节省内存空间。它的实现方式也和ziplist很类似，所以阅读理解起来并不难。也许该数据结构设计出来是要替代ziplist的，只不过ziplist目前在redis中的应用非常广泛，替换起来复杂度很高，所以目前该数据结构只有在新引入的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码-紧凑列表listpack">
+<meta property="og:url" content="https://blog.grizzlys.top/Redis/1-data-structure/redis-parse-listpack/index.html">
+<meta property="og:site_name" content="Grizzly">
+<meta property="og:description" content="源码位置：listpack.c&#x2F;listpack.h Redis 5.0版本引入的一个新的数据结构，它是对ziplist压缩列表的改进，listpack结构更为精简，更加节省内存空间。它的实现方式也和ziplist很类似，所以阅读理解起来并不难。也许该数据结构设计出来是要替代ziplist的，只不过ziplist目前在redis中的应用非常广泛，替换起来复杂度很高，所以目前该数据结构只有在新引入的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://i.loli.net/2020/10/29/KbiyRrgpVwvAaqU.png">
+<meta property="og:image" content="https://i.loli.net/2020/10/29/4PNFi12ueAg6ndK.png">
+<meta property="og:image" content="https://i.loli.net/2020/10/29/F2AfskTOS6nexP8.png">
+<meta property="og:image" content="https://i.loli.net/2020/10/29/MCeUzOo8qwh2idN.png">
+<meta property="article:published_time" content="2020-04-01T11:02:58.000Z">
+<meta property="article:modified_time" content="2021-07-08T02:33:40.867Z">
+<meta property="article:author" content="李辉雄">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2020/10/29/KbiyRrgpVwvAaqU.png">
+
+<link rel="canonical" href="https://blog.grizzlys.top/Redis/1-data-structure/redis-parse-listpack/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Redis源码-紧凑列表listpack | Grizzly</title>
+  
+
+
+  <script data-pjax>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?9a8d6781d509714e86bffed13a6f0b71";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Grizzly" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Grizzly</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">博观而约取，厚积而薄发</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-redis">
+
+    <a href="/categories/Redis" rel="section"><i class="snake fa-fw"></i>Redis</a>
+
+  </li>
+        <li class="menu-item menu-item-c++">
+
+    <a href="/categories/c" rel="section"><i class="copyright fa-fw"></i>c++</a>
+
+  </li>
+        <li class="menu-item menu-item-golang">
+
+    <a href="/categories/golang" rel="section"><i class="google fa-fw"></i>golang</a>
+
+  </li>
+        <li class="menu-item menu-item-vim">
+
+    <a href="/categories/vim" rel="section"><i class="vimeo-v fa-fw"></i>vim</a>
+
+  </li>
+        <li class="menu-item menu-item-计算机网络">
+
+    <a href="/categories/net" rel="section"><i class="th fa-fw"></i>计算机网络</a>
+
+  </li>
+        <li class="menu-item menu-item-数据结构与算法">
+
+    <a href="/categories/DataStructure" rel="section"><i class="th fa-fw"></i>数据结构与算法</a>
+
+  </li>
+        <li class="menu-item menu-item-区块链技术">
+
+    <a href="/categories/blockchain" rel="section"><i class="th fa-fw"></i>区块链技术</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.grizzlys.top/Redis/1-data-structure/redis-parse-listpack/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="学习、记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis源码-紧凑列表listpack
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-04-01 19:02:58" itemprop="dateCreated datePublished" datetime="2020-04-01T19:02:58+08:00">2020-04-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-07-08 10:33:40" itemprop="dateModified" datetime="2021-07-08T10:33:40+08:00">2021-07-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/1-data-structure/" itemprop="url" rel="index"><span itemprop="name">1-data-structure</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>源码位置：listpack.c/listpack.h</p>
+<p>Redis 5.0版本引入的一个新的数据结构，它是对ziplist压缩列表的改进，listpack结构更为精简，更加节省内存空间。它的实现方式也和ziplist很类似，所以阅读理解起来并不难。也许该数据结构设计出来是要替代ziplist的，只不过ziplist目前在redis中的应用非常广泛，替换起来复杂度很高，所以目前该数据结构只有在新引入的stream数据结构中使用，可能将来有一天会全面替换ziplist。  </p>
+<p>相对于ziplist，listpack取消了存储前置节点长度的字段，listpack的节点之间是相互独立的，改变前置节点的长度，不会影响到后续节点的长度，所以再也不需要连锁更新操作。<br><a id="more"></a><br>和ziplist一样，没有专门定义的结构体，在内存中的表现如下：<br><strong>listpack结构：</strong><br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2020/10/29/KbiyRrgpVwvAaqU.png" alt="listpack.png"><br>|属性       |长度        |用途        |<br>|—-        |—-        |—-        |<br>|lpbyte     |4byte      |表示整个lp的字节数（最大可存储4GB）。可用于快速定位最后一个节点的位置。|<br>|lpsize     |2byte      |表示元素（节点）个数。|<br>|lpentry    |不定长     |节点。存储数据编码类型，数据，和当前元素的长度。|<br>|lpend      |1byte      |lp结束标志，和ziplist一样，恒为0xff。|</p>
+<p><strong>lpentry节点：</strong><br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2020/10/29/4PNFi12ueAg6ndK.png" alt="listpack_entry.png"><br>encoding：数据的编码类型，如下：<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2020/10/29/F2AfskTOS6nexP8.png" alt="listpack_encoding.png"><br>data：元素。<br>backlen：存储encoding+data的长度，这个是用于反向遍历的关键，通过位置指针p-backlen_size-backlen，可移动到上一个节点的位置。编码如下：<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="https://i.loli.net/2020/10/29/MCeUzOo8qwh2idN.png" alt="listpack_backlen.png"></p>
+<p>下面来列举一下主要函数的时间复杂度：<br>|函数|作用 |复杂度|<br>|—-|—-|—-|<br>|lpNew()|创建listpack|O(1)|<br>|lpFree()|释放listpack|O(1)|<br>|lpSeek()|获取指定位置的节点指针|平均O(N)，首尾O(1)|<br>|lpAppend()|指定位置插入元素|O(1)|<br>|lpDelete()|指定位置删除元素|O(1)|</p>
+<h2 id="结构体与宏定义"><a href="#结构体与宏定义" class="headerlink" title="结构体与宏定义"></a>结构体与宏定义</h2><hr>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// listpack_malloc.h</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lp_malloc zmalloc</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lp_realloc zrealloc</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lp_free zfree</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_INTBUF_SIZE 21 <span class="comment">/* 20 digits of -2^63 + 1 null term = 21. */</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// listpack.h</span></span><br><span class="line"><span class="comment">/* lpInsert() where argument possible values: */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_BEFORE 0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_AFTER 1</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_REPLACE 2</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// listpack.c</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_HDR_SIZE 6       <span class="comment">/* 32 bit total len + 16 bit number of elements. */</span> <span class="comment">// 前4个byte表示占用的总字节数，后2个byte表示元素个数</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_HDR_NUMELE_UNKNOWN UINT16_MAX</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_MAX_INT_ENCODING_LEN 9</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_MAX_BACKLEN_SIZE 5</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_MAX_ENTRY_BACKLEN 34359738367ULL</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_INT 0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_STRING 1</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_7BIT_UINT 0</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_7BIT_UINT_MASK 0x80 <span class="comment">// 1000 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_7BIT_UINT(byte) (((byte)&amp;LP_ENCODING_7BIT_UINT_MASK)==LP_ENCODING_7BIT_UINT) <span class="comment">// 0xxx xxxx : 7bit正整数编码类型判断</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_6BIT_STR 0x80 <span class="comment">// 1000 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_6BIT_STR_MASK 0xC0 <span class="comment">// 1100 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_6BIT_STR(byte) (((byte)&amp;LP_ENCODING_6BIT_STR_MASK)==LP_ENCODING_6BIT_STR) <span class="comment">// 10aa aaaa : 6bit字符串编码，前2个bit表示6bit字符串编码，后跟6个bit表示字符串长度</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_13BIT_INT 0xC0 <span class="comment">// 1100 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_13BIT_INT_MASK 0xE0 <span class="comment">// 1110 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_13BIT_INT(byte) (((byte)&amp;LP_ENCODING_13BIT_INT_MASK)==LP_ENCODING_13BIT_INT) <span class="comment">// 1100 xxxx : 13bit整数编码类型判断</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_12BIT_STR 0xE0 <span class="comment">// 1110 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_12BIT_STR_MASK 0xF0 <span class="comment">// 1111 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_12BIT_STR(byte) (((byte)&amp;LP_ENCODING_12BIT_STR_MASK)==LP_ENCODING_12BIT_STR) <span class="comment">// 1100 aaaa aaaa aaaa : 12bit字符串编码，前4个bit表示12bit字符串编码，后跟12个bit表示字符串长度</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_16BIT_INT 0xF1 <span class="comment">// 1111 0001</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_16BIT_INT_MASK 0xFF <span class="comment">// 1111 1111</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_16BIT_INT(byte) (((byte)&amp;LP_ENCODING_16BIT_INT_MASK)==LP_ENCODING_16BIT_INT) <span class="comment">// 1110 0001 : 16bit整数编码类型判断</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_24BIT_INT 0xF2 <span class="comment">// 1111 0010</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_24BIT_INT_MASK 0xFF <span class="comment">// 1111 1111</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_24BIT_INT(byte) (((byte)&amp;LP_ENCODING_24BIT_INT_MASK)==LP_ENCODING_24BIT_INT) <span class="comment">// 1111 0010 : 24bit整数编码类型判断</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_32BIT_INT 0xF3 <span class="comment">// 1111 0011</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_32BIT_INT_MASK 0xFF <span class="comment">// 1111 1111</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_32BIT_INT(byte) (((byte)&amp;LP_ENCODING_32BIT_INT_MASK)==LP_ENCODING_32BIT_INT) <span class="comment">// 1111 0011 : 32bit整数编码类型判断</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_64BIT_INT 0xF4 <span class="comment">// 1111 0100</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_64BIT_INT_MASK 0xFF <span class="comment">// 1111 1111</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_64BIT_INT(byte) (((byte)&amp;LP_ENCODING_64BIT_INT_MASK)==LP_ENCODING_64BIT_INT) <span class="comment">// 1111 0100 : 64bit整数编码类型判断</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_32BIT_STR 0xF0 <span class="comment">// 1111 0000</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_32BIT_STR_MASK 0xFF  <span class="comment">// 1111 1111</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_IS_32BIT_STR(byte) (((byte)&amp;LP_ENCODING_32BIT_STR_MASK)==LP_ENCODING_32BIT_STR) <span class="comment">// 1111 0000 : 32bit字符串编码，前8个bit表示32bit字符串编码，后跟32个bit表示字符串长度</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_EOF 0xFF <span class="comment">// listpack结束标志</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 计算6bit字符串类型编码的实际长度</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_6BIT_STR_LEN(p) ((p)[0] &amp; 0x3F)</span></span><br><span class="line"><span class="comment">// 计算12bit字符串类型编码的实际长度</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_12BIT_STR_LEN(p) ((((p)[0] &amp; 0xF) &lt;&lt; 8) | (p)[1])</span></span><br><span class="line"><span class="comment">// 计算32bit字符串类型编码的实际长度</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> LP_ENCODING_32BIT_STR_LEN(p) (((uint32_t)(p)[1]&lt;&lt;0) | \</span></span><br><span class="line">                                      ((<span class="keyword">uint32_t</span>)(p)[<span class="number">2</span>]&lt;&lt;<span class="number">8</span>) | \</span><br><span class="line">                                      ((<span class="keyword">uint32_t</span>)(p)[<span class="number">3</span>]&lt;&lt;<span class="number">16</span>) | \</span><br><span class="line">                                      ((<span class="keyword">uint32_t</span>)(p)[<span class="number">4</span>]&lt;&lt;<span class="number">24</span>))</span><br><span class="line"><span class="comment">// 获取listpack总字节数</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lpGetTotalBytes(p)           (((uint32_t)(p)[0]&lt;&lt;0) | \</span></span><br><span class="line">                                      ((<span class="keyword">uint32_t</span>)(p)[<span class="number">1</span>]&lt;&lt;<span class="number">8</span>) | \</span><br><span class="line">                                      ((<span class="keyword">uint32_t</span>)(p)[<span class="number">2</span>]&lt;&lt;<span class="number">16</span>) | \</span><br><span class="line">                                      ((<span class="keyword">uint32_t</span>)(p)[<span class="number">3</span>]&lt;&lt;<span class="number">24</span>))</span><br><span class="line"><span class="comment">// 获取listpack元素个数</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lpGetNumElements(p)          (((uint32_t)(p)[4]&lt;&lt;0) | \</span></span><br><span class="line">                                      ((<span class="keyword">uint32_t</span>)(p)[<span class="number">5</span>]&lt;&lt;<span class="number">8</span>))</span><br><span class="line"><span class="comment">// 设置listpack的总字节数</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lpSetTotalBytes(p,v) do &#123; \</span></span><br><span class="line">    (p)[<span class="number">0</span>] = (v)&amp;<span class="number">0xff</span>; \</span><br><span class="line">    (p)[<span class="number">1</span>] = ((v)&gt;&gt;<span class="number">8</span>)&amp;<span class="number">0xff</span>; \</span><br><span class="line">    (p)[<span class="number">2</span>] = ((v)&gt;&gt;<span class="number">16</span>)&amp;<span class="number">0xff</span>; \</span><br><span class="line">    (p)[<span class="number">3</span>] = ((v)&gt;&gt;<span class="number">24</span>)&amp;<span class="number">0xff</span>; \</span><br><span class="line">&#125; <span class="keyword">while</span>(<span class="number">0</span>)</span><br><span class="line"><span class="comment">// 设置元素个数</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> lpSetNumElements(p,v) do &#123; \</span></span><br><span class="line">    (p)[<span class="number">4</span>] = (v)&amp;<span class="number">0xff</span>; \</span><br><span class="line">    (p)[<span class="number">5</span>] = ((v)&gt;&gt;<span class="number">8</span>)&amp;<span class="number">0xff</span>; \</span><br><span class="line">&#125; <span class="keyword">while</span>(<span class="number">0</span>)</span><br></pre></td></tr></table></figure>
+<h2 id="函数功能总览"><a href="#函数功能总览" class="headerlink" title="函数功能总览"></a>函数功能总览</h2><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpNew</span><span class="params">(<span class="keyword">void</span>)</span></span>; <span class="comment">// 创建listpack</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">lpFree</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span></span>; <span class="comment">// 释放listpack</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpInsert</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *ele, <span class="keyword">uint32_t</span> size, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p, <span class="keyword">int</span> where, <span class="keyword">unsigned</span> <span class="keyword">char</span> **newp)</span></span>; <span class="comment">// 指定节点插入或删除操作（ele为空，则为删除）</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpAppend</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *ele, <span class="keyword">uint32_t</span> size)</span></span>; <span class="comment">// 插入元素</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpDelete</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p, <span class="keyword">unsigned</span> <span class="keyword">char</span> **newp)</span></span>; <span class="comment">// 删除元素</span></span><br><span class="line"><span class="function"><span class="keyword">uint32_t</span> <span class="title">lpLength</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span></span>; <span class="comment">// listpack节点个数</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpGet</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *p, <span class="keyword">int64_t</span> *count, <span class="keyword">unsigned</span> <span class="keyword">char</span> *intbuf)</span></span>; <span class="comment">// 获取节点的数据</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpFirst</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span></span>; <span class="comment">// 获取头节点</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpLast</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span></span>; <span class="comment">// 获取尾节点</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpNext</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p)</span></span>; <span class="comment">// 跳到下一个节点</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpPrev</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p)</span></span>; <span class="comment">// 跳到上一个节点</span></span><br><span class="line"><span class="function"><span class="keyword">uint32_t</span> <span class="title">lpBytes</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span></span>; <span class="comment">// 获取listpack的大小</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpSeek</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">long</span> index)</span></span>; <span class="comment">// 获取指定位置节点的指针</span></span><br></pre></td></tr></table></figure>
+<h2 id="主要函数实现"><a href="#主要函数实现" class="headerlink" title="主要函数实现"></a>主要函数实现</h2><hr>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建listpack</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpNew</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *lp = lp_malloc(LP_HDR_SIZE+<span class="number">1</span>); <span class="comment">// 申请7byte的内存空间</span></span><br><span class="line">    <span class="keyword">if</span> (lp == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    lpSetTotalBytes(lp,LP_HDR_SIZE+<span class="number">1</span>);</span><br><span class="line">    lpSetNumElements(lp,<span class="number">0</span>);</span><br><span class="line">    lp[LP_HDR_SIZE] = LP_EOF; <span class="comment">// 节点结束标志（恒为0xFF）</span></span><br><span class="line">    <span class="keyword">return</span> lp;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 释放listpack</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">lpFree</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span> </span>&#123;</span><br><span class="line">    lp_free(lp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>编码相关：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取元素编码类型和长度</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">lpEncodeGetType</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *ele, <span class="keyword">uint32_t</span> size, <span class="keyword">unsigned</span> <span class="keyword">char</span> *intenc, <span class="keyword">uint64_t</span> *enclen)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int64_t</span> v;</span><br><span class="line">    <span class="keyword">if</span> (lpStringToInt64((<span class="keyword">const</span> <span class="keyword">char</span>*)ele, size, &amp;v)) &#123;</span><br><span class="line">        <span class="comment">// 如果能转为整数，则判定元素为整数，根据数值编码到intenc中</span></span><br><span class="line">        <span class="keyword">if</span> (v &gt;= <span class="number">0</span> &amp;&amp; v &lt;= <span class="number">127</span>) &#123;</span><br><span class="line">            <span class="comment">/* Single byte 0-127 integer. */</span></span><br><span class="line">            intenc[<span class="number">0</span>] = v;</span><br><span class="line">            *enclen = <span class="number">1</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (v &gt;= <span class="number">-4096</span> &amp;&amp; v &lt;= <span class="number">4095</span>) &#123;</span><br><span class="line">            <span class="comment">/* 13 bit integer. */</span></span><br><span class="line">            <span class="keyword">if</span> (v &lt; <span class="number">0</span>) v = ((<span class="keyword">int64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">13</span>)+v;</span><br><span class="line">            intenc[<span class="number">0</span>] = (v&gt;&gt;<span class="number">8</span>)|LP_ENCODING_13BIT_INT;</span><br><span class="line">            intenc[<span class="number">1</span>] = v&amp;<span class="number">0xff</span>;</span><br><span class="line">            *enclen = <span class="number">2</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (v &gt;= <span class="number">-32768</span> &amp;&amp; v &lt;= <span class="number">32767</span>) &#123;</span><br><span class="line">            <span class="comment">/* 16 bit integer. */</span></span><br><span class="line">            <span class="keyword">if</span> (v &lt; <span class="number">0</span>) v = ((<span class="keyword">int64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">16</span>)+v;</span><br><span class="line">            intenc[<span class="number">0</span>] = LP_ENCODING_16BIT_INT;</span><br><span class="line">            intenc[<span class="number">1</span>] = v&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">2</span>] = v&gt;&gt;<span class="number">8</span>;</span><br><span class="line">            *enclen = <span class="number">3</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (v &gt;= <span class="number">-8388608</span> &amp;&amp; v &lt;= <span class="number">8388607</span>) &#123;</span><br><span class="line">            <span class="comment">/* 24 bit integer. */</span></span><br><span class="line">            <span class="keyword">if</span> (v &lt; <span class="number">0</span>) v = ((<span class="keyword">int64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">24</span>)+v;</span><br><span class="line">            intenc[<span class="number">0</span>] = LP_ENCODING_24BIT_INT;</span><br><span class="line">            intenc[<span class="number">1</span>] = v&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">2</span>] = (v&gt;&gt;<span class="number">8</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">3</span>] = v&gt;&gt;<span class="number">16</span>;</span><br><span class="line">            *enclen = <span class="number">4</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (v &gt;= <span class="number">-2147483648</span> &amp;&amp; v &lt;= <span class="number">2147483647</span>) &#123;</span><br><span class="line">            <span class="comment">/* 32 bit integer. */</span></span><br><span class="line">            <span class="keyword">if</span> (v &lt; <span class="number">0</span>) v = ((<span class="keyword">int64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">32</span>)+v;</span><br><span class="line">            intenc[<span class="number">0</span>] = LP_ENCODING_32BIT_INT;</span><br><span class="line">            intenc[<span class="number">1</span>] = v&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">2</span>] = (v&gt;&gt;<span class="number">8</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">3</span>] = (v&gt;&gt;<span class="number">16</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">4</span>] = v&gt;&gt;<span class="number">24</span>;</span><br><span class="line">            *enclen = <span class="number">5</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">/* 64 bit integer. */</span></span><br><span class="line">            <span class="keyword">uint64_t</span> uv = v;</span><br><span class="line">            intenc[<span class="number">0</span>] = LP_ENCODING_64BIT_INT;</span><br><span class="line">            intenc[<span class="number">1</span>] = uv&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">2</span>] = (uv&gt;&gt;<span class="number">8</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">3</span>] = (uv&gt;&gt;<span class="number">16</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">4</span>] = (uv&gt;&gt;<span class="number">24</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">5</span>] = (uv&gt;&gt;<span class="number">32</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">6</span>] = (uv&gt;&gt;<span class="number">40</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">7</span>] = (uv&gt;&gt;<span class="number">48</span>)&amp;<span class="number">0xff</span>;</span><br><span class="line">            intenc[<span class="number">8</span>] = uv&gt;&gt;<span class="number">56</span>;</span><br><span class="line">            *enclen = <span class="number">9</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> LP_ENCODING_INT;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 如果是字符串，则计算字符串的编码长度</span></span><br><span class="line">        <span class="keyword">if</span> (size &lt; <span class="number">64</span>) *enclen = <span class="number">1</span>+size;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (size &lt; <span class="number">4096</span>) *enclen = <span class="number">2</span>+size;</span><br><span class="line">        <span class="keyword">else</span> *enclen = <span class="number">5</span>+size;</span><br><span class="line">        <span class="keyword">return</span> LP_ENCODING_STRING;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 把encoding+data的长度编码到backlen中</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="title">lpEncodeBacklen</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *buf, <span class="keyword">uint64_t</span> l)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (l &lt;= <span class="number">127</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (buf) buf[<span class="number">0</span>] = l;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (l &lt; <span class="number">16383</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (buf) &#123;</span><br><span class="line">            buf[<span class="number">0</span>] = l&gt;&gt;<span class="number">7</span>;</span><br><span class="line">            buf[<span class="number">1</span>] = (l&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">2</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (l &lt; <span class="number">2097151</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (buf) &#123;</span><br><span class="line">            buf[<span class="number">0</span>] = l&gt;&gt;<span class="number">14</span>;</span><br><span class="line">            buf[<span class="number">1</span>] = ((l&gt;&gt;<span class="number">7</span>)&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">            buf[<span class="number">2</span>] = (l&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">3</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (l &lt; <span class="number">268435455</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span> (buf) &#123;</span><br><span class="line">            buf[<span class="number">0</span>] = l&gt;&gt;<span class="number">21</span>;</span><br><span class="line">            buf[<span class="number">1</span>] = ((l&gt;&gt;<span class="number">14</span>)&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">            buf[<span class="number">2</span>] = ((l&gt;&gt;<span class="number">7</span>)&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">            buf[<span class="number">3</span>] = (l&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">4</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (buf) &#123;</span><br><span class="line">            buf[<span class="number">0</span>] = l&gt;&gt;<span class="number">28</span>;</span><br><span class="line">            buf[<span class="number">1</span>] = ((l&gt;&gt;<span class="number">21</span>)&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">            buf[<span class="number">2</span>] = ((l&gt;&gt;<span class="number">14</span>)&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">            buf[<span class="number">3</span>] = ((l&gt;&gt;<span class="number">7</span>)&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">            buf[<span class="number">4</span>] = (l&amp;<span class="number">127</span>)|<span class="number">128</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">5</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 解码出encoding+data的长度</span></span><br><span class="line"><span class="function"><span class="keyword">uint64_t</span> <span class="title">lpDecodeBacklen</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *p)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">uint64_t</span> val = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">uint64_t</span> shift = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        val |= (<span class="keyword">uint64_t</span>)(p[<span class="number">0</span>] &amp; <span class="number">127</span>) &lt;&lt; shift;</span><br><span class="line">        <span class="keyword">if</span> (!(p[<span class="number">0</span>] &amp; <span class="number">128</span>)) <span class="keyword">break</span>;</span><br><span class="line">        shift += <span class="number">7</span>;</span><br><span class="line">        p--;</span><br><span class="line">        <span class="keyword">if</span> (shift &gt; <span class="number">28</span>) <span class="keyword">return</span> UINT64_MAX;</span><br><span class="line">    &#125; <span class="keyword">while</span>(<span class="number">1</span>);</span><br><span class="line">    <span class="keyword">return</span> val;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 字符串类型编码</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">lpEncodeString</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *buf, <span class="keyword">unsigned</span> <span class="keyword">char</span> *s, <span class="keyword">uint32_t</span> len)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (len &lt; <span class="number">64</span>) &#123;</span><br><span class="line">        buf[<span class="number">0</span>] = len | LP_ENCODING_6BIT_STR;</span><br><span class="line">        <span class="built_in">memcpy</span>(buf+<span class="number">1</span>,s,len);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (len &lt; <span class="number">4096</span>) &#123;</span><br><span class="line">        buf[<span class="number">0</span>] = (len &gt;&gt; <span class="number">8</span>) | LP_ENCODING_12BIT_STR;</span><br><span class="line">        buf[<span class="number">1</span>] = len &amp; <span class="number">0xff</span>;</span><br><span class="line">        <span class="built_in">memcpy</span>(buf+<span class="number">2</span>,s,len);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        buf[<span class="number">0</span>] = LP_ENCODING_32BIT_STR;</span><br><span class="line">        buf[<span class="number">1</span>] = len &amp; <span class="number">0xff</span>;</span><br><span class="line">        buf[<span class="number">2</span>] = (len &gt;&gt; <span class="number">8</span>) &amp; <span class="number">0xff</span>;</span><br><span class="line">        buf[<span class="number">3</span>] = (len &gt;&gt; <span class="number">16</span>) &amp; <span class="number">0xff</span>;</span><br><span class="line">        buf[<span class="number">4</span>] = (len &gt;&gt; <span class="number">24</span>) &amp; <span class="number">0xff</span>;</span><br><span class="line">        <span class="built_in">memcpy</span>(buf+<span class="number">5</span>,s,len);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>插入和删除：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 插入</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpAppend</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *ele, <span class="keyword">uint32_t</span> size)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">uint64_t</span> listpack_bytes = lpGetTotalBytes(lp);</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *eofptr = lp + listpack_bytes - <span class="number">1</span>;</span><br><span class="line">    <span class="keyword">return</span> lpInsert(lp,ele,size,eofptr,LP_BEFORE,<span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 删除</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpDelete</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p, <span class="keyword">unsigned</span> <span class="keyword">char</span> **newp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> lpInsert(lp,<span class="literal">NULL</span>,<span class="number">0</span>,p,LP_REPLACE,newp);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 插入（删除）元素实现，根据ele是否为NULL来判定是哪种操作类型（NULL为删除操作，非NULL为插入操作）</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpInsert</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *ele, <span class="keyword">uint32_t</span> size, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p, <span class="keyword">int</span> where, <span class="keyword">unsigned</span> <span class="keyword">char</span> **newp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> intenc[LP_MAX_INT_ENCODING_LEN]; <span class="comment">// intenc数组用来记录整型元素的编码和元素内容</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> backlen[LP_MAX_BACKLEN_SIZE];</span><br><span class="line"></span><br><span class="line">    <span class="keyword">uint64_t</span> enclen; <span class="comment">/* The length of the encoded element. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* An element pointer set to NULL means deletion, which is conceptually</span></span><br><span class="line"><span class="comment">     * replacing the element with a zero-length element. So whatever we</span></span><br><span class="line"><span class="comment">     * get passed as &#x27;where&#x27;, set it to LP_REPLACE. */</span></span><br><span class="line">    <span class="comment">// 如果元素ele为空意味着删除，即用0长度元素去替换，所以where设置为LP_REPLACE</span></span><br><span class="line">    <span class="keyword">if</span> (ele == <span class="literal">NULL</span>) where = LP_REPLACE;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* If we need to insert after the current element, we just jump to the</span></span><br><span class="line"><span class="comment">     * next element (that could be the EOF one) and handle the case of</span></span><br><span class="line"><span class="comment">     * inserting before. So the function will actually deal with just two</span></span><br><span class="line"><span class="comment">     * cases: LP_BEFORE and LP_REPLACE. */</span></span><br><span class="line">    <span class="comment">// 如果想要在位置p后插入元素，则将p跳到下一个元素并在之前处理插入的情况，所以该函数实际上只处理两种情况，LP_BEFORE和LP_REPLACE</span></span><br><span class="line">    <span class="keyword">if</span> (where == LP_AFTER) &#123;</span><br><span class="line">        p = lpSkip(p);</span><br><span class="line">        where = LP_BEFORE;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Store the offset of the element &#x27;p&#x27;, so that we can obtain its</span></span><br><span class="line"><span class="comment">     * address again after a reallocation. */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> poff = p-lp;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Calling lpEncodeGetType() results into the encoded version of the</span></span><br><span class="line"><span class="comment">     * element to be stored into &#x27;intenc&#x27; in case it is representable as</span></span><br><span class="line"><span class="comment">     * an integer: in that case, the function returns LP_ENCODING_INT.</span></span><br><span class="line"><span class="comment">     * Otherwise if LP_ENCODING_STR is returned, we&#x27;ll have to call</span></span><br><span class="line"><span class="comment">     * lpEncodeString() to actually write the encoded string on place later.</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * Whatever the returned encoding is, &#x27;enclen&#x27; is populated with the</span></span><br><span class="line"><span class="comment">     * length of the encoded element. */</span></span><br><span class="line">    <span class="keyword">int</span> enctype;</span><br><span class="line">    <span class="keyword">if</span> (ele) &#123;</span><br><span class="line">        <span class="comment">// 获取编码类型和编码长度</span></span><br><span class="line">        enctype = lpEncodeGetType(ele,size,intenc,&amp;enclen);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        enctype = <span class="number">-1</span>;</span><br><span class="line">        enclen = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We need to also encode the backward-parsable length of the element</span></span><br><span class="line"><span class="comment">     * and append it to the end: this allows to traverse the listpack from</span></span><br><span class="line"><span class="comment">     * the end to the start. */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> backlen_size = ele ? lpEncodeBacklen(backlen,enclen) : <span class="number">0</span>; <span class="comment">// 编码长度</span></span><br><span class="line">    <span class="keyword">uint64_t</span> old_listpack_bytes = lpGetTotalBytes(lp); <span class="comment">// 获取当前lp的字节数</span></span><br><span class="line">    <span class="keyword">uint32_t</span> replaced_len  = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">if</span> (where == LP_REPLACE) &#123;</span><br><span class="line">        <span class="comment">// 如果是删除操作，则计算p位置节点的长度</span></span><br><span class="line">        replaced_len = lpCurrentEncodedSize(p); <span class="comment">// 当前位置p的元素编码字节数</span></span><br><span class="line">        replaced_len += lpEncodeBacklen(<span class="literal">NULL</span>,replaced_len);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">uint64_t</span> new_listpack_bytes = old_listpack_bytes + enclen + backlen_size</span><br><span class="line">                                  - replaced_len;</span><br><span class="line">    <span class="keyword">if</span> (new_listpack_bytes &gt; UINT32_MAX) <span class="keyword">return</span> <span class="literal">NULL</span>; <span class="comment">// 单个listpack最大只能是4GB</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We now need to reallocate in order to make space or shrink the</span></span><br><span class="line"><span class="comment">     * allocation (in case &#x27;when&#x27; value is LP_REPLACE and the new element is</span></span><br><span class="line"><span class="comment">     * smaller). However we do that before memmoving the memory to</span></span><br><span class="line"><span class="comment">     * make room for the new element if the final allocation will get</span></span><br><span class="line"><span class="comment">     * larger, or we do it after if the final allocation will get smaller. */</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *dst = lp + poff; <span class="comment">/* May be updated after reallocation. */</span> <span class="comment">// 指向元素将要插入的位置</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Realloc before: we need more room. */</span></span><br><span class="line">    <span class="keyword">if</span> (new_listpack_bytes &gt; old_listpack_bytes) &#123;</span><br><span class="line">        <span class="comment">// 如果是插入，则lp需要分配更多内存空间</span></span><br><span class="line">        <span class="keyword">if</span> ((lp = lp_realloc(lp,new_listpack_bytes)) == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        dst = lp + poff;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Setup the listpack relocating the elements to make the exact room</span></span><br><span class="line"><span class="comment">     * we need to store the new one. */</span></span><br><span class="line">    <span class="keyword">if</span> (where == LP_BEFORE) &#123;</span><br><span class="line">        <span class="comment">// 移动结束位（lpend）到最后</span></span><br><span class="line">        memmove(dst+enclen+backlen_size,dst,old_listpack_bytes-poff);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123; <span class="comment">/* LP_REPLACE. */</span></span><br><span class="line">        <span class="comment">// 将删除的节点后面的所有内存数据往前移动到节点的位置上</span></span><br><span class="line">        <span class="keyword">long</span> lendiff = (enclen+backlen_size)-replaced_len;</span><br><span class="line">        memmove(dst+replaced_len+lendiff,</span><br><span class="line">                dst+replaced_len,</span><br><span class="line">                old_listpack_bytes-poff-replaced_len);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Realloc after: we need to free space. */</span></span><br><span class="line">    <span class="keyword">if</span> (new_listpack_bytes &lt; old_listpack_bytes) &#123;</span><br><span class="line">        <span class="comment">// 如果是删除操作，则lp也需要重新分配内存空间</span></span><br><span class="line">        <span class="keyword">if</span> ((lp = lp_realloc(lp,new_listpack_bytes)) == <span class="literal">NULL</span>) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">        dst = lp + poff;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Store the entry. */</span></span><br><span class="line">    <span class="keyword">if</span> (newp) &#123;</span><br><span class="line">        <span class="comment">// 将当前位置赋给newp</span></span><br><span class="line">        *newp = dst;</span><br><span class="line">        <span class="comment">/* In case of deletion, set &#x27;newp&#x27; to NULL if the next element is</span></span><br><span class="line"><span class="comment">         * the EOF element. */</span></span><br><span class="line">         <span class="comment">// 如果是删除操作，并且已经到了列表尾了，返回null</span></span><br><span class="line">        <span class="keyword">if</span> (!ele &amp;&amp; dst[<span class="number">0</span>] == LP_EOF) *newp = <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (ele) &#123;</span><br><span class="line">        <span class="comment">// 插入操作将数据填充到节点</span></span><br><span class="line">        <span class="keyword">if</span> (enctype == LP_ENCODING_INT) &#123;</span><br><span class="line">            <span class="built_in">memcpy</span>(dst,intenc,enclen);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            lpEncodeString(dst,ele,size);</span><br><span class="line">        &#125;</span><br><span class="line">        dst += enclen;</span><br><span class="line">        <span class="comment">// 填充backlen</span></span><br><span class="line">        <span class="built_in">memcpy</span>(dst,backlen,backlen_size);</span><br><span class="line">        dst += backlen_size;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Update header. */</span></span><br><span class="line">    <span class="comment">// 更新lp信息</span></span><br><span class="line">    <span class="keyword">if</span> (where != LP_REPLACE || ele == <span class="literal">NULL</span>) &#123;</span><br><span class="line">        <span class="keyword">uint32_t</span> num_elements = lpGetNumElements(lp);</span><br><span class="line">        <span class="keyword">if</span> (num_elements != LP_HDR_NUMELE_UNKNOWN) &#123;</span><br><span class="line">            <span class="keyword">if</span> (ele)</span><br><span class="line">                lpSetNumElements(lp,num_elements+<span class="number">1</span>);</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                lpSetNumElements(lp,num_elements<span class="number">-1</span>);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    lpSetTotalBytes(lp,new_listpack_bytes);</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">if</span> 0</span></span><br><span class="line">    <span class="comment">/* This code path is normally disabled: what it does is to force listpack</span></span><br><span class="line"><span class="comment">     * to return *always* a new pointer after performing some modification to</span></span><br><span class="line"><span class="comment">     * the listpack, even if the previous allocation was enough. This is useful</span></span><br><span class="line"><span class="comment">     * in order to spot bugs in code using listpacks: by doing so we can find</span></span><br><span class="line"><span class="comment">     * if the caller forgets to set the new pointer where the listpack reference</span></span><br><span class="line"><span class="comment">     * is stored, after an update. */</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *oldlp = lp;</span><br><span class="line">    lp = lp_malloc(new_listpack_bytes);</span><br><span class="line">    <span class="built_in">memcpy</span>(lp,oldlp,new_listpack_bytes);</span><br><span class="line">    <span class="keyword">if</span> (newp) &#123;</span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">long</span> offset = (*newp)-oldlp;</span><br><span class="line">        *newp = lp + offset;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* Make sure the old allocation contains garbage. */</span></span><br><span class="line">    <span class="built_in">memset</span>(oldlp,<span class="string">&#x27;A&#x27;</span>,new_listpack_bytes);</span><br><span class="line">    lp_free(oldlp);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> lp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>节点遍历相关操作：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 如果是在位置p的节点后进行操作，则先把p跳到该节点的后一个节点上</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpSkip</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *p)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 获取当前节点encoding+data的长度</span></span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> entrylen = lpCurrentEncodedSize(p);</span><br><span class="line">    <span class="comment">// 获取当前backlen的长度</span></span><br><span class="line">    entrylen += lpEncodeBacklen(<span class="literal">NULL</span>,entrylen);</span><br><span class="line">    <span class="comment">// 指针移动到下一个节点的位置</span></span><br><span class="line">    p += entrylen;</span><br><span class="line">    <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 跳到下一个节点</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpNext</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p)</span> </span>&#123;</span><br><span class="line">    ((<span class="keyword">void</span>) lp); <span class="comment">/* lp is not used for now. However lpPrev() uses it. */</span></span><br><span class="line">    p = lpSkip(p);</span><br><span class="line">    <span class="keyword">if</span> (p[<span class="number">0</span>] == LP_EOF) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 跳到上一个节点</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpPrev</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">unsigned</span> <span class="keyword">char</span> *p)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (p-lp == LP_HDR_SIZE) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    p--; <span class="comment">/* Seek the first backlen byte of the last element. */</span></span><br><span class="line">    <span class="comment">// 获取encoding+data的长度</span></span><br><span class="line">    <span class="keyword">uint64_t</span> prevlen = lpDecodeBacklen(p);</span><br><span class="line">    <span class="comment">// 获取backlen的长度</span></span><br><span class="line">    prevlen += lpEncodeBacklen(<span class="literal">NULL</span>,prevlen);</span><br><span class="line">    <span class="comment">// 指针移动到上一个节点的位置</span></span><br><span class="line">    <span class="keyword">return</span> p-prevlen+<span class="number">1</span>; <span class="comment">/* Seek the first byte of the previous entry. */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Return a pointer to the first element of the listpack, or NULL if the</span></span><br><span class="line"><span class="comment"> * listpack has no elements. */</span></span><br><span class="line"><span class="comment">// 首节点位置</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpFirst</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span> </span>&#123;</span><br><span class="line">    lp += LP_HDR_SIZE; <span class="comment">/* Skip the header. */</span></span><br><span class="line">    <span class="keyword">if</span> (lp[<span class="number">0</span>] == LP_EOF) <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    <span class="keyword">return</span> lp;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Return a pointer to the last element of the listpack, or NULL if the</span></span><br><span class="line"><span class="comment"> * listpack has no elements. */</span></span><br><span class="line"><span class="comment">// 尾节点位置</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpLast</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> *p = lp+lpGetTotalBytes(lp)<span class="number">-1</span>; <span class="comment">/* Seek EOF element. */</span></span><br><span class="line">    <span class="keyword">return</span> lpPrev(lp,p); <span class="comment">/* Will return NULL if EOF is the only element. */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>查询：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取指定位置的节点指针</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpSeek</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *lp, <span class="keyword">long</span> index)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> forward = <span class="number">1</span>; <span class="comment">/* Seek forward by default. */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We want to seek from left to right or the other way around</span></span><br><span class="line"><span class="comment">     * depending on the listpack length and the element position.</span></span><br><span class="line"><span class="comment">     * However if the listpack length cannot be obtained in constant time,</span></span><br><span class="line"><span class="comment">     * we always seek from left to right. */</span></span><br><span class="line">    <span class="keyword">uint32_t</span> numele = lpGetNumElements(lp); <span class="comment">// 获取整个listpack的节点数</span></span><br><span class="line">    <span class="comment">// 计算index在listpack中的上半区域还是下半区域</span></span><br><span class="line">    <span class="keyword">if</span> (numele != LP_HDR_NUMELE_UNKNOWN) &#123;</span><br><span class="line">        <span class="keyword">if</span> (index &lt; <span class="number">0</span>) index = (<span class="keyword">long</span>)numele+index;</span><br><span class="line">        <span class="keyword">if</span> (index &lt; <span class="number">0</span>) <span class="keyword">return</span> <span class="literal">NULL</span>; <span class="comment">/* Index still &lt; 0 means out of range. */</span></span><br><span class="line">        <span class="keyword">if</span> (index &gt;= numele) <span class="keyword">return</span> <span class="literal">NULL</span>; <span class="comment">/* Out of range the other side. */</span></span><br><span class="line">        <span class="comment">/* We want to scan right-to-left if the element we are looking for</span></span><br><span class="line"><span class="comment">         * is past the half of the listpack. */</span></span><br><span class="line">        <span class="keyword">if</span> (index &gt; numele/<span class="number">2</span>) &#123;</span><br><span class="line">            forward = <span class="number">0</span>;</span><br><span class="line">            <span class="comment">/* Left to right scanning always expects a negative index. Convert</span></span><br><span class="line"><span class="comment">             * our index to negative form. */</span></span><br><span class="line">            index -= numele;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/* If the listpack length is unspecified, for negative indexes we</span></span><br><span class="line"><span class="comment">         * want to always scan left-to-right. */</span></span><br><span class="line">        <span class="keyword">if</span> (index &lt; <span class="number">0</span>) forward = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Forward and backward scanning is trivially based on lpNext()/lpPrev(). */</span></span><br><span class="line">    <span class="keyword">if</span> (forward) &#123;</span><br><span class="line">        <span class="comment">// 如果在上半区域，则从头节点开始正向遍历到index的位置</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *ele = lpFirst(lp);</span><br><span class="line">        <span class="keyword">while</span> (index &gt; <span class="number">0</span> &amp;&amp; ele) &#123;</span><br><span class="line">            ele = lpNext(lp,ele);</span><br><span class="line">            index--;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> ele;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 如果在下半区域，则尾头节点开始正向遍历到index的位置</span></span><br><span class="line">        <span class="keyword">unsigned</span> <span class="keyword">char</span> *ele = lpLast(lp);</span><br><span class="line">        <span class="keyword">while</span> (index &lt; <span class="number">-1</span> &amp;&amp; ele) &#123;</span><br><span class="line">            ele = lpPrev(lp,ele);</span><br><span class="line">            index++;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> ele;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 获取节点p的数据</span></span><br><span class="line"><span class="comment">// 如果数据是字符串，则返回值就是字符串的头指针，count是字符串的长度</span></span><br><span class="line"><span class="comment">// 如果数据是整数，数值填入count，如果不为空，将数值转为字符串填入intbuf</span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">char</span> *<span class="title">lpGet</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">char</span> *p, <span class="keyword">int64_t</span> *count, <span class="keyword">unsigned</span> <span class="keyword">char</span> *intbuf)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int64_t</span> val;</span><br><span class="line">    <span class="keyword">uint64_t</span> uval, negstart, negmax;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 以下是判断数据的编码类型，如果是字符串，则直接取出返回</span></span><br><span class="line">    <span class="keyword">if</span> (LP_ENCODING_IS_7BIT_UINT(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        negstart = UINT64_MAX; <span class="comment">/* 7 bit ints are always positive. */</span></span><br><span class="line">        negmax = <span class="number">0</span>;</span><br><span class="line">        uval = p[<span class="number">0</span>] &amp; <span class="number">0x7f</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_6BIT_STR(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        *count = LP_ENCODING_6BIT_STR_LEN(p);</span><br><span class="line">        <span class="keyword">return</span> p+<span class="number">1</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_13BIT_INT(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        uval = ((p[<span class="number">0</span>]&amp;<span class="number">0x1f</span>)&lt;&lt;<span class="number">8</span>) | p[<span class="number">1</span>];</span><br><span class="line">        negstart = (<span class="keyword">uint64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">12</span>;</span><br><span class="line">        negmax = <span class="number">8191</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_16BIT_INT(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        uval = (<span class="keyword">uint64_t</span>)p[<span class="number">1</span>] |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">2</span>]&lt;&lt;<span class="number">8</span>;</span><br><span class="line">        negstart = (<span class="keyword">uint64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">15</span>;</span><br><span class="line">        negmax = UINT16_MAX;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_24BIT_INT(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        uval = (<span class="keyword">uint64_t</span>)p[<span class="number">1</span>] |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">2</span>]&lt;&lt;<span class="number">8</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">3</span>]&lt;&lt;<span class="number">16</span>;</span><br><span class="line">        negstart = (<span class="keyword">uint64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">23</span>;</span><br><span class="line">        negmax = UINT32_MAX&gt;&gt;<span class="number">8</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_32BIT_INT(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        uval = (<span class="keyword">uint64_t</span>)p[<span class="number">1</span>] |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">2</span>]&lt;&lt;<span class="number">8</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">3</span>]&lt;&lt;<span class="number">16</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">4</span>]&lt;&lt;<span class="number">24</span>;</span><br><span class="line">        negstart = (<span class="keyword">uint64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">31</span>;</span><br><span class="line">        negmax = UINT32_MAX;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_64BIT_INT(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        uval = (<span class="keyword">uint64_t</span>)p[<span class="number">1</span>] |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">2</span>]&lt;&lt;<span class="number">8</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">3</span>]&lt;&lt;<span class="number">16</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">4</span>]&lt;&lt;<span class="number">24</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">5</span>]&lt;&lt;<span class="number">32</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">6</span>]&lt;&lt;<span class="number">40</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">7</span>]&lt;&lt;<span class="number">48</span> |</span><br><span class="line">               (<span class="keyword">uint64_t</span>)p[<span class="number">8</span>]&lt;&lt;<span class="number">56</span>;</span><br><span class="line">        negstart = (<span class="keyword">uint64_t</span>)<span class="number">1</span>&lt;&lt;<span class="number">63</span>;</span><br><span class="line">        negmax = UINT64_MAX;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_12BIT_STR(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        *count = LP_ENCODING_12BIT_STR_LEN(p);</span><br><span class="line">        <span class="keyword">return</span> p+<span class="number">2</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (LP_ENCODING_IS_32BIT_STR(p[<span class="number">0</span>])) &#123;</span><br><span class="line">        *count = LP_ENCODING_32BIT_STR_LEN(p);</span><br><span class="line">        <span class="keyword">return</span> p+<span class="number">5</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        uval = <span class="number">12345678900000000U</span>LL + p[<span class="number">0</span>];</span><br><span class="line">        negstart = UINT64_MAX;</span><br><span class="line">        negmax = <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* We reach this code path only for integer encodings.</span></span><br><span class="line"><span class="comment">     * Convert the unsigned value to the signed one using two&#x27;s complement</span></span><br><span class="line"><span class="comment">     * rule. */</span></span><br><span class="line">     <span class="comment">// 如果是负整数，则转为有符号整数</span></span><br><span class="line">    <span class="keyword">if</span> (uval &gt;= negstart) &#123;</span><br><span class="line">        <span class="comment">/* This three steps conversion should avoid undefined behaviors</span></span><br><span class="line"><span class="comment">         * in the unsigned -&gt; signed conversion. */</span></span><br><span class="line">        uval = negmax-uval;</span><br><span class="line">        val = uval;</span><br><span class="line">        val = -val<span class="number">-1</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        val = uval;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Return the string representation of the integer or the value itself</span></span><br><span class="line"><span class="comment">     * depending on intbuf being NULL or not. */</span></span><br><span class="line">    <span class="keyword">if</span> (intbuf) &#123;</span><br><span class="line">        *count = <span class="built_in">snprintf</span>((<span class="keyword">char</span>*)intbuf,LP_INTBUF_SIZE,<span class="string">&quot;%lld&quot;</span>,(<span class="keyword">long</span> <span class="keyword">long</span>)val);</span><br><span class="line">        <span class="keyword">return</span> intbuf;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        *count = val;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>李辉雄
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://blog.grizzlys.top/Redis/1-data-structure/redis-parse-listpack/" title="Redis源码-紧凑列表listpack">https://blog.grizzlys.top/Redis/1-data-structure/redis-parse-listpack/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"># Redis</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/Redis/2-object/redis-parse-object/" rel="prev" title="Redis源码-对象系统object">
+      <i class="fa fa-chevron-left"></i> Redis源码-对象系统object
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/Redis/1-data-structure/redis-parse-rax/" rel="next" title="Redis源码-基数树rax">
+      Redis源码-基数树rax <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93%E4%B8%8E%E5%AE%8F%E5%AE%9A%E4%B9%89"><span class="nav-number">1.</span> <span class="nav-text">结构体与宏定义</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%8A%9F%E8%83%BD%E6%80%BB%E8%A7%88"><span class="nav-number">2.</span> <span class="nav-text">函数功能总览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">主要函数实现</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="李辉雄"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">李辉雄</p>
+  <div class="site-description" itemprop="description">学习、记录</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">42</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">李辉雄</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="/lib/canvas-ribbon/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '83e621afbb975e7ae373',
+      clientSecret: '51509442793886cbca7c0d7508b24c3ae0e38d28',
+      repo        : 'blog_comments',
+      owner       : 'Grizzly1127',
+      admin       : ['Grizzly1127'],
+      id          : '3cbaa133a04a3fd1e11d3f35ab2921e2',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+<script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(e.href.match(t)||e.href.match(r))&&(e.href=a.dataset.original)})});</script><script>!function(n){n.imageLazyLoadSetting.processImages=o;var i=n.imageLazyLoadSetting.isSPA,r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]"));function o(){i&&(r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")));for(var t,e,a=0;a<r.length;a++)t=r[a],e=void 0,0<=(e=t.getBoundingClientRect()).bottom&&0<=e.left&&e.top<=(n.innerHeight||document.documentElement.clientHeight)&&function(){var t,e,n,i,o=r[a];t=o,e=function(){r=r.filter(function(t){return o!==t})},n=new Image,i=t.getAttribute("data-original"),n.onload=function(){t.src=i,e&&e()},n.src=i}()}o(),n.addEventListener("scroll",function(){var t,e;t=o,e=n,clearTimeout(t.tId),t.tId=setTimeout(function(){t.call(e)},500)})}(this);</script></body>
+</html>

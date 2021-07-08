@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"blog.grizzlys.top","root":"/","scheme":"Pisces","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":"flat"},"back2top":{"enable":true,"sidebar":false,"scrollpercent":true},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":"gitalk","storage":true,"lazyload":false,"nav":null,"activeClass":"gitalk"},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="源码位置：multi.c&#x2F;redis.h 1. 简介Redis 事务的本质是一组命令的集合。事务支持一次执行多个命令，一个事务中所有命令都会被序列化。在事务执行过程，会按照顺序串行化执行队列中的命令，其他客户端提交的命令请求不会插入到事务执行命令序列中。总结说：redis事务就是一次性、顺序性、排他性的执行一个队列中的一系列命令。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis源码-事务">
+<meta property="og:url" content="https://blog.grizzlys.top/Redis/3-database/redis-parse-multi/index.html">
+<meta property="og:site_name" content="Grizzly">
+<meta property="og:description" content="源码位置：multi.c&#x2F;redis.h 1. 简介Redis 事务的本质是一组命令的集合。事务支持一次执行多个命令，一个事务中所有命令都会被序列化。在事务执行过程，会按照顺序串行化执行队列中的命令，其他客户端提交的命令请求不会插入到事务执行命令序列中。总结说：redis事务就是一次性、顺序性、排他性的执行一个队列中的一系列命令。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-07-13T07:32:54.000Z">
+<meta property="article:modified_time" content="2021-07-08T02:33:40.869Z">
+<meta property="article:author" content="李辉雄">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://blog.grizzlys.top/Redis/3-database/redis-parse-multi/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Redis源码-事务 | Grizzly</title>
+  
+
+
+  <script data-pjax>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?9a8d6781d509714e86bffed13a6f0b71";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="Grizzly" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Grizzly</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">博观而约取，厚积而薄发</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-redis">
+
+    <a href="/categories/Redis" rel="section"><i class="snake fa-fw"></i>Redis</a>
+
+  </li>
+        <li class="menu-item menu-item-c++">
+
+    <a href="/categories/c" rel="section"><i class="copyright fa-fw"></i>c++</a>
+
+  </li>
+        <li class="menu-item menu-item-golang">
+
+    <a href="/categories/golang" rel="section"><i class="google fa-fw"></i>golang</a>
+
+  </li>
+        <li class="menu-item menu-item-vim">
+
+    <a href="/categories/vim" rel="section"><i class="vimeo-v fa-fw"></i>vim</a>
+
+  </li>
+        <li class="menu-item menu-item-计算机网络">
+
+    <a href="/categories/net" rel="section"><i class="th fa-fw"></i>计算机网络</a>
+
+  </li>
+        <li class="menu-item menu-item-数据结构与算法">
+
+    <a href="/categories/DataStructure" rel="section"><i class="th fa-fw"></i>数据结构与算法</a>
+
+  </li>
+        <li class="menu-item menu-item-区块链技术">
+
+    <a href="/categories/blockchain" rel="section"><i class="th fa-fw"></i>区块链技术</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://blog.grizzlys.top/Redis/3-database/redis-parse-multi/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpg">
+      <meta itemprop="name" content="李辉雄">
+      <meta itemprop="description" content="学习、记录">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Grizzly">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Redis源码-事务
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-07-13 15:32:54" itemprop="dateCreated datePublished" datetime="2020-07-13T15:32:54+08:00">2020-07-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-07-08 10:33:40" itemprop="dateModified" datetime="2021-07-08T10:33:40+08:00">2021-07-08</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/" itemprop="url" rel="index"><span itemprop="name">Redis</span></a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Redis/3-database/" itemprop="url" rel="index"><span itemprop="name">3-database</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>源码位置：multi.c/redis.h</p>
+<p><strong>1. 简介</strong><br>Redis 事务的本质是一组命令的集合。事务支持一次执行多个命令，一个事务中所有命令都会被序列化。在事务执行过程，会按照顺序串行化执行队列中的命令，其他客户端提交的命令请求不会插入到事务执行命令序列中。<br>总结说：redis事务就是一次性、顺序性、排他性的执行一个队列中的一系列命令。</p>
+<a id="more"></a>
+<p>Redis事务的ACID特性：</p>
+<p><strong>A原子性（atomicity）</strong><br>单个Redis命令的执行是原子性的，但Redis没有在事务上增加任何维护原子性的机制，所以<strong>Redis事务的执行不是原子性</strong>的。<br>另一方面，如果 Redis 服务器进程在执行事务的过程中被停止 —— 比如接到 KILL 信号、宿主机器停机，等等，那么事务执行失败<br>事务失败时，Redis 也不会进行任何的重试或者回滚动作，不满足要么全部全部执行，要么都不执行的条件</p>
+<p><strong>C一致性（consistency）：</strong><br>一致性分下面几种情况来讨论：</p>
+<p>首先，如果一个事务的指令全部被执行，那么数据库的状态是满足数据库完整性约束的</p>
+<p>其次，如果一个事务中有的指令有错误，那么数据库的状态是满足数据完整性约束的</p>
+<p>最后，如果事务运行到某条指令时，进程被kill掉了，那么要分下面几种情况讨论：</p>
+<ul>
+<li>如果当前redis采用的是内存模式，那么重启之后redis数据库是空的，那么满足一致性条件</li>
+<li>如果当前采用RDB模式存储的，在执行事务时，Redis 不会中断事务去执行保存 RDB 的工作，只有在事务执行之后，保存 RDB 的工作才有可能开始。所以当 RDB 模式下的 Redis 服务器进程在事务中途被杀死时，事务内执行的命令，不管成功了多少，都不会被保存到 RDB 文件里。 恢复数据库需要使用现有的 RDB 文件，而这个 RDB 文件的数据保存的是最近一次的数 据库快照（snapshot），所以它的数据可能不是最新的，但只要 RDB 文件本身没有因为其他问题而出错，那么还原后的数据库就是一致的</li>
+<li>如果当前采用的是AOF存储的，那么可能事务的内容还未写入到AOF文件，那么此时肯定是满足一致性的，如果事务的内容有部分写入到AOF文件中，那么需要用工具把AOF中事务执行部分成功的指令移除，这时，移除之后的AOF文件也是满足一致性的</li>
+</ul>
+<p>所以，<strong>redis事务满足一致性约束</strong>。</p>
+<p><strong>I隔离性（isolation）：</strong><br>Redis 是单进程程序，并且它保证在执行事务时，不会对事务进行中断，事务可以运行直到执行完所有事务队列中的命令为止。因此，<strong>Redis 的事务是总是带有隔离性</strong>的。</p>
+<p><strong>D持久性（durability）：</strong><br>因为事务不过是用队列包裹起了一组 Redis 命令，并没有提供任何额外的持久性功能，所以事务的持久性由 Redis 所使用的持久化模式决定</p>
+<ul>
+<li>在单纯的内存模式下，事务肯定是不持久的</li>
+<li>在 RDB 模式下，服务器可能在事务执行之后、RDB 文件更新之前的这段时间失败，所以 RDB 模式下的 Redis 事务也是不持久的</li>
+<li>在 AOF 的“总是 SYNC ”模式下，事务的每条命令在执行成功之后，都会立即调用 fsync 或 fdatasync 将事务数据写入到 AOF 文件。但是，这种保存是由后台线程进行的，主线程不会阻塞直到保存成功，所以从命令执行成功到数据保存到硬盘之间，还是有一段非常小的间隔，所以这种模式下的事务也是不持久的。</li>
+<li>其他 AOF 模式也和“总是 SYNC ”模式类似，所以它们都是不持久的。</li>
+</ul>
+<p><strong>2. 命令介绍</strong><br>下面介绍命令的使用详情：</p>
+<div class="table-container">
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MULTI</td>
+<td>标记一个事务的开始</td>
+</tr>
+<tr>
+<td>DISCARD</td>
+<td>取消事务，放弃执行事务块内的所有命令</td>
+</tr>
+<tr>
+<td>EXEC</td>
+<td>执行事务内的所有命令</td>
+</tr>
+<tr>
+<td>WATCH key [key …]</td>
+<td>监视一个(或多个) key ，如果在事务执行之前这个(或这些) key 被其他命令所改动，那么事务将被打断，不会被执行</td>
+</tr>
+<tr>
+<td>UNWATCH</td>
+<td>取消 WATCH 命令对所有 key 的监视</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>3. 实现细节</strong><br>Redis事务从开始到结束通常分为三步：</p>
+<ol>
+<li>事务开始(MULTI)：MULTI命令可以将执行该命令的客户端从非事务状态切换成事务状态，这一切换是通过客户端状态的flags属性中打开 <code>CLIENT_MULTI</code> 标识完成的。</li>
+<li>命令入队：切换到事务状态后，该客户端输入的所有命令，都会被暂存到一个命令队列里，不会立即执行。</li>
+<li>事务执行(EXEX)：EXEC命令将命令队列里的命令挨个执行完成。</li>
+</ol>
+<p>Redis会把每个连接的客户端封装成一个client结构体，该结构体包含大量的字段用来保存需要的信息。其中，事务相关的字段如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">client</span> &#123;</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    multiState mstate;</span><br><span class="line">    <span class="built_in">list</span> *watched_keys; <span class="comment">// 监视的key列表（节点结构：watchedKey）</span></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/* Client MULTI/EXEC state */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">multiCmd</span> &#123;</span></span><br><span class="line">    robj **argv;    <span class="comment">/* 参数 */</span></span><br><span class="line">    <span class="keyword">int</span> argc;       <span class="comment">/* 参数数量 */</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> *<span class="title">cmd</span>;</span>   <span class="comment">/* 命令本身 */</span></span><br><span class="line">&#125; multiCmd;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">multiState</span> &#123;</span></span><br><span class="line">    multiCmd *commands;     <span class="comment">/* 事务命令队列 */</span></span><br><span class="line">    <span class="keyword">int</span> count;              <span class="comment">/* 队列中命令的数量 */</span></span><br><span class="line">    <span class="keyword">int</span> cmd_flags;          <span class="comment">/*  */</span></span><br><span class="line">    <span class="keyword">int</span> minreplicas;        <span class="comment">/* 需要同步复制的最小数量 */</span></span><br><span class="line">    <span class="keyword">time_t</span> minreplicas_timeout; <span class="comment">/* 同步复制超时时间 */</span></span><br><span class="line">&#125; multiState;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 监视列表中的节点结构</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">watchedKey</span> &#123;</span></span><br><span class="line">    robj *key;      <span class="comment">/* watch的key*/</span></span><br><span class="line">    redisDb *db;    <span class="comment">/* 指向的db */</span></span><br><span class="line">&#125; watchedKey;</span><br></pre></td></tr></table></figure>
+<p>需要注意的是，客户端打开事务操作标识后，只有命令：EXEC、DISCARD、WATCH、MULTI命令会被立即执行，该逻辑在server.c文件中的processCommand方法中：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">processCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    <span class="comment">/* Exec the command */</span></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_MULTI &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != execCommand &amp;&amp; c-&gt;cmd-&gt;proc != discardCommand &amp;&amp;</span><br><span class="line">        c-&gt;cmd-&gt;proc != multiCommand &amp;&amp; c-&gt;cmd-&gt;proc != watchCommand)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 将命令插入队列</span></span><br><span class="line">        queueMultiCommand(c);</span><br><span class="line">        addReply(c,shared.queued);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 立即执行</span></span><br><span class="line">        call(c,CMD_CALL_FULL);</span><br><span class="line">        c-&gt;woff = server.master_repl_offset;</span><br><span class="line">        <span class="keyword">if</span> (listLength(server.ready_keys))</span><br><span class="line">            handleClientsBlockedOnKeys();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将命令插入队列中</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">queueMultiCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    multiCmd *mc;</span><br><span class="line">    <span class="keyword">int</span> j;</span><br><span class="line"></span><br><span class="line">    c-&gt;mstate.commands = zrealloc(c-&gt;mstate.commands,</span><br><span class="line">            <span class="keyword">sizeof</span>(multiCmd)*(c-&gt;mstate.count+<span class="number">1</span>));</span><br><span class="line">    mc = c-&gt;mstate.commands+c-&gt;mstate.count;</span><br><span class="line">    mc-&gt;cmd = c-&gt;cmd;</span><br><span class="line">    mc-&gt;argc = c-&gt;argc;</span><br><span class="line">    mc-&gt;argv = zmalloc(<span class="keyword">sizeof</span>(robj*)*c-&gt;argc);</span><br><span class="line">    <span class="built_in">memcpy</span>(mc-&gt;argv,c-&gt;argv,<span class="keyword">sizeof</span>(robj*)*c-&gt;argc);</span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; c-&gt;argc; j++)</span><br><span class="line">        incrRefCount(mc-&gt;argv[j]);</span><br><span class="line">    c-&gt;mstate.count++;</span><br><span class="line">    c-&gt;mstate.cmd_flags |= c-&gt;cmd-&gt;flags;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>最后我们考虑一下watch机制的触发时机，现在我们已经把想要watch的key加入到了watch的数据结构中，可以想到触发watch的时机应该是修改key的内容时，通知到所有watch了该key的客户端。该触发机制的源码在multi.c文件的<code>touchWatchedKey()</code>函数中实现。</p>
+<h2 id="函数功能总览"><a href="#函数功能总览" class="headerlink" title="函数功能总览"></a>函数功能总览</h2><hr>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">multiCommand</span><span class="params">(client *c)</span></span>; <span class="comment">// 设置客户端事务标识</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">execCommand</span><span class="params">(client *c)</span></span>; <span class="comment">// 执行命令队列中的命令</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">discardCommand</span><span class="params">(client *c)</span></span>; <span class="comment">// 取消事务</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">watchCommand</span><span class="params">(client *c)</span></span>; <span class="comment">// 监视一个或多个key</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">unwatchCommand</span><span class="params">(client *c)</span></span>; <span class="comment">// 取消监视</span></span><br></pre></td></tr></table></figure>
+<h2 id="主要函数实现"><a href="#主要函数实现" class="headerlink" title="主要函数实现"></a>主要函数实现</h2><hr>
+<p><strong>事务开始：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">multiCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_MULTI) &#123;</span><br><span class="line">        addReplyError(c,<span class="string">&quot;MULTI calls can not be nested&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 设置客户端的事务标识</span></span><br><span class="line">    c-&gt;flags |= CLIENT_MULTI;</span><br><span class="line">    addReply(c,shared.ok);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>执行事务：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">execCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> j;</span><br><span class="line">    robj **orig_argv;</span><br><span class="line">    <span class="keyword">int</span> orig_argc;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">redisCommand</span> *<span class="title">orig_cmd</span>;</span></span><br><span class="line">    <span class="keyword">int</span> must_propagate = <span class="number">0</span>; <span class="comment">// 标记是否需要把MULTI/EXEC传递到AOF或者slaves节点</span></span><br><span class="line">    <span class="keyword">int</span> was_master = server.masterhost == <span class="literal">NULL</span>; <span class="comment">// 标记当前redis节点是否为主节点</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果客户端没有处于事务状态，则返回错误提示信息</span></span><br><span class="line">    <span class="keyword">if</span> (!(c-&gt;flags &amp; CLIENT_MULTI)) &#123;</span><br><span class="line">        addReplyError(c,<span class="string">&quot;EXEC without MULTI&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 首先对两个需要终止当前事务的条件进行判断:</span></span><br><span class="line"><span class="comment">     * 1) 当有WATCH的key被修改时则终止，返回一个nullmultibulk对象</span></span><br><span class="line"><span class="comment">     * 2) 当之前有命令加入事务命令数组出错则终止，例如传入的命令参数数量不对，会返回execaborterr */</span></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; (CLIENT_DIRTY_CAS|CLIENT_DIRTY_EXEC)) &#123;</span><br><span class="line">        addReply(c, c-&gt;flags &amp; CLIENT_DIRTY_EXEC ? shared.execaborterr :</span><br><span class="line">                                                   shared.nullarray[c-&gt;resp]);</span><br><span class="line">        <span class="comment">// 删除当前事务信息</span></span><br><span class="line">        discardTransaction(c);</span><br><span class="line">        <span class="keyword">goto</span> handle_monitor;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 如果事务命令中有写的操作，并且当前redis节点为只读slave节点，将返回错误 */</span></span><br><span class="line">    <span class="keyword">if</span> (!server.loading &amp;&amp; server.masterhost &amp;&amp; server.repl_slave_ro &amp;&amp;</span><br><span class="line">        !(c-&gt;flags &amp; CLIENT_MASTER) &amp;&amp; c-&gt;mstate.cmd_flags &amp; CMD_WRITE)</span><br><span class="line">    &#123;</span><br><span class="line">        addReplyError(c,</span><br><span class="line">            <span class="string">&quot;Transaction contains write commands but instance &quot;</span></span><br><span class="line">            <span class="string">&quot;is now a read-only replica. EXEC aborted.&quot;</span>);</span><br><span class="line">        discardTransaction(c);</span><br><span class="line">        <span class="keyword">goto</span> handle_monitor;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 执行队列中的所有命令 */</span></span><br><span class="line">    unwatchAllKeys(c); <span class="comment">/* 把watch的key都删除 */</span></span><br><span class="line">    <span class="comment">// 保存当前命令上下文</span></span><br><span class="line">    orig_argv = c-&gt;argv;</span><br><span class="line">    orig_argc = c-&gt;argc;</span><br><span class="line">    orig_cmd = c-&gt;cmd;</span><br><span class="line">    addReplyArrayLen(c,c-&gt;mstate.count);</span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; c-&gt;mstate.count; j++) &#123;</span><br><span class="line">        c-&gt;argc = c-&gt;mstate.commands[j].argc;</span><br><span class="line">        c-&gt;argv = c-&gt;mstate.commands[j].argv;</span><br><span class="line">        c-&gt;cmd = c-&gt;mstate.commands[j].cmd;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 同步事务操作到AOF或者集群中的从节点. */</span></span><br><span class="line">        <span class="keyword">if</span> (!must_propagate &amp;&amp; !(c-&gt;cmd-&gt;flags &amp; (CMD_READONLY|CMD_ADMIN))) &#123;</span><br><span class="line">            execCommandPropagateMulti(c);</span><br><span class="line">            must_propagate = <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">int</span> acl_keypos;</span><br><span class="line">        <span class="keyword">int</span> acl_retval = ACLCheckCommandPerm(c,&amp;acl_keypos);</span><br><span class="line">        <span class="keyword">if</span> (acl_retval != ACL_OK) &#123;</span><br><span class="line">            addACLLogEntry(c,acl_retval,acl_keypos,<span class="literal">NULL</span>);</span><br><span class="line">            addReplyErrorFormat(c,</span><br><span class="line">                <span class="string">&quot;-NOPERM ACLs rules changed between the moment the &quot;</span></span><br><span class="line">                <span class="string">&quot;transaction was accumulated and the EXEC call. &quot;</span></span><br><span class="line">                <span class="string">&quot;This command is no longer allowed for the &quot;</span></span><br><span class="line">                <span class="string">&quot;following reason: %s&quot;</span>,</span><br><span class="line">                (acl_retval == ACL_DENIED_CMD) ?</span><br><span class="line">                <span class="string">&quot;no permission to execute the command or subcommand&quot;</span> :</span><br><span class="line">                <span class="string">&quot;no permission to touch the specified keys&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            call(c,server.loading ? CMD_CALL_NONE : CMD_CALL_FULL);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 由于命令可以修改参数的值或者数量，因此重新保存命令上下文 */</span></span><br><span class="line">        c-&gt;mstate.commands[j].argc = c-&gt;argc;</span><br><span class="line">        c-&gt;mstate.commands[j].argv = c-&gt;argv;</span><br><span class="line">        c-&gt;mstate.commands[j].cmd = c-&gt;cmd;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 恢复原始命令上下文</span></span><br><span class="line">    c-&gt;argv = orig_argv;</span><br><span class="line">    c-&gt;argc = orig_argc;</span><br><span class="line">    c-&gt;cmd = orig_cmd;</span><br><span class="line">    <span class="comment">// 事务执行完成，删除该事务</span></span><br><span class="line">    discardTransaction(c);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 确保EXEC会进行传递 */</span></span><br><span class="line">    <span class="keyword">if</span> (must_propagate) &#123;</span><br><span class="line">        <span class="keyword">int</span> is_master = server.masterhost == <span class="literal">NULL</span>;</span><br><span class="line">        server.dirty++;</span><br><span class="line">        <span class="keyword">if</span> (server.repl_backlog &amp;&amp; was_master &amp;&amp; !is_master) &#123;</span><br><span class="line">            <span class="keyword">char</span> *execcmd = <span class="string">&quot;*1\r\n$4\r\nEXEC\r\n&quot;</span>;</span><br><span class="line">            feedReplicationBacklog(execcmd,<span class="built_in">strlen</span>(execcmd));</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">handle_monitor:</span><br><span class="line">    <span class="comment">/* monitor命令操作 */</span></span><br><span class="line">    <span class="keyword">if</span> (listLength(server.monitors) &amp;&amp; !server.loading)</span><br><span class="line">        replicationFeedMonitors(c,server.monitors,c-&gt;db-&gt;id,c-&gt;argv,c-&gt;argc);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>取消事务：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">discardCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (!(c-&gt;flags &amp; CLIENT_MULTI)) &#123;</span><br><span class="line">        addReplyError(c,<span class="string">&quot;DISCARD without MULTI&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    discardTransaction(c);</span><br><span class="line">    addReply(c,shared.ok);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 具体的删除逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">discardTransaction</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    freeClientMultiState(c);</span><br><span class="line">    initClientMultiState(c);</span><br><span class="line">    <span class="comment">// 状态位还原</span></span><br><span class="line">    c-&gt;flags &amp;= ~(CLIENT_MULTI|CLIENT_DIRTY_CAS|CLIENT_DIRTY_EXEC);</span><br><span class="line">    unwatchAllKeys(c);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 释放事务中的所有命令</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">freeClientMultiState</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> j;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; c-&gt;mstate.count; j++) &#123;</span><br><span class="line">        <span class="keyword">int</span> i;</span><br><span class="line">        multiCmd *mc = c-&gt;mstate.commands+j;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; mc-&gt;argc; i++)</span><br><span class="line">            decrRefCount(mc-&gt;argv[i]);</span><br><span class="line">        zfree(mc-&gt;argv);</span><br><span class="line">    &#125;</span><br><span class="line">    zfree(c-&gt;mstate.commands);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 事务相关字段设为初始值</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">initClientMultiState</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    c-&gt;mstate.commands = <span class="literal">NULL</span>;</span><br><span class="line">    c-&gt;mstate.count = <span class="number">0</span>;</span><br><span class="line">    c-&gt;mstate.cmd_flags = <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>watch监视：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">watchCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> j;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (c-&gt;flags &amp; CLIENT_MULTI) &#123;</span><br><span class="line">        addReplyError(c,<span class="string">&quot;WATCH inside MULTI is not allowed&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">for</span> (j = <span class="number">1</span>; j &lt; c-&gt;argc; j++)</span><br><span class="line">        watchForKey(c,c-&gt;argv[j]);</span><br><span class="line">    addReply(c,shared.ok);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">watchForKey</span><span class="params">(client *c, robj *key)</span> </span>&#123;</span><br><span class="line">    <span class="built_in">list</span> *clients = <span class="literal">NULL</span>;</span><br><span class="line">    listIter li;</span><br><span class="line">    listNode *ln;</span><br><span class="line">    watchedKey *wk;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 判断key是否已经被watch过 */</span></span><br><span class="line">    listRewind(c-&gt;watched_keys,&amp;li);</span><br><span class="line">    <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</span><br><span class="line">        wk = listNodeValue(ln);</span><br><span class="line">        <span class="keyword">if</span> (wk-&gt;db == c-&gt;db &amp;&amp; equalStringObjects(key,wk-&gt;key))</span><br><span class="line">            <span class="keyword">return</span>; <span class="comment">/* Key already watched */</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">/* 如果未被watch，则将key加入到列表中</span></span><br><span class="line"><span class="comment">     * 整个watch操作保存了两套数据结构，一套是在db-&gt;watched_keys中的字典结构</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    clients = dictFetchValue(c-&gt;db-&gt;watched_keys,key);</span><br><span class="line">    <span class="keyword">if</span> (!clients) &#123;</span><br><span class="line">        clients = listCreate();</span><br><span class="line">        dictAdd(c-&gt;db-&gt;watched_keys,key,clients);</span><br><span class="line">        incrRefCount(key);</span><br><span class="line">    &#125;</span><br><span class="line">    listAddNodeTail(clients,c);</span><br><span class="line">    <span class="comment">/* 另一套是在c-&gt;watched_keys中的链表结构 */</span></span><br><span class="line">    wk = zmalloc(<span class="keyword">sizeof</span>(*wk));</span><br><span class="line">    wk-&gt;key = key;</span><br><span class="line">    wk-&gt;db = c-&gt;db;</span><br><span class="line">    incrRefCount(key);</span><br><span class="line">    listAddNodeTail(c-&gt;watched_keys,wk);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><strong>unwatch取消监视：</strong></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">unwatchCommand</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    unwatchAllKeys(c);</span><br><span class="line">    <span class="comment">// 修改客户端状态</span></span><br><span class="line">    c-&gt;flags &amp;= (~CLIENT_DIRTY_CAS);</span><br><span class="line">    addReply(c,shared.ok);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">unwatchAllKeys</span><span class="params">(client *c)</span> </span>&#123;</span><br><span class="line">    listIter li;</span><br><span class="line">    listNode *ln;</span><br><span class="line">    <span class="comment">// 如果客户端没有watch任何key，则直接返回</span></span><br><span class="line">    <span class="keyword">if</span> (listLength(c-&gt;watched_keys) == <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line">    listRewind(c-&gt;watched_keys,&amp;li);</span><br><span class="line">    <span class="keyword">while</span>((ln = listNext(&amp;li))) &#123;</span><br><span class="line">        <span class="built_in">list</span> *clients;</span><br><span class="line">        watchedKey *wk;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 遍历取出该客户端watch的key */</span></span><br><span class="line">        wk = listNodeValue(ln);</span><br><span class="line">        clients = dictFetchValue(wk-&gt;db-&gt;watched_keys, wk-&gt;key);</span><br><span class="line">        serverAssertWithInfo(c,<span class="literal">NULL</span>,clients != <span class="literal">NULL</span>);</span><br><span class="line">        listDelNode(clients,listSearchKey(clients,c));</span><br><span class="line">        <span class="comment">/* Kill the entry at all if this was the only client */</span></span><br><span class="line">        <span class="keyword">if</span> (listLength(clients) == <span class="number">0</span>)</span><br><span class="line">            dictDelete(wk-&gt;db-&gt;watched_keys, wk-&gt;key);</span><br><span class="line">        <span class="comment">/* Remove this watched key from the client-&gt;watched list */</span></span><br><span class="line">        listDelNode(c-&gt;watched_keys,ln);</span><br><span class="line">        decrRefCount(wk-&gt;key);</span><br><span class="line">        zfree(wk);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>李辉雄
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://blog.grizzlys.top/Redis/3-database/redis-parse-multi/" title="Redis源码-事务">https://blog.grizzlys.top/Redis/3-database/redis-parse-multi/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Redis/" rel="tag"># Redis</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/Redis/3-database/redis-parse-pubsub/" rel="prev" title="Redis源码-发布和订阅">
+      <i class="fa fa-chevron-left"></i> Redis源码-发布和订阅
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/Redis/4-net/redis-parse-event/" rel="next" title="Redis源码-事件驱动">
+      Redis源码-事件驱动 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%87%BD%E6%95%B0%E5%8A%9F%E8%83%BD%E6%80%BB%E8%A7%88"><span class="nav-number">1.</span> <span class="nav-text">函数功能总览</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E8%A6%81%E5%87%BD%E6%95%B0%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.</span> <span class="nav-text">主要函数实现</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="李辉雄"
+      src="/images/avatar.jpg">
+  <p class="site-author-name" itemprop="name">李辉雄</p>
+  <div class="site-description" itemprop="description">学习、记录</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">42</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">李辉雄</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script size="300" alpha="0.6" zIndex="-1" src="/lib/canvas-ribbon/canvas-ribbon.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/pjax/pjax.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+  <script>
+var pjax = new Pjax({
+  selectors: [
+    'head title',
+    '#page-configurations',
+    '.content-wrap',
+    '.post-toc-wrap',
+    '.languages',
+    '#pjax'
+  ],
+  switches: {
+    '.post-toc-wrap': Pjax.switches.innerHTML
+  },
+  analytics: false,
+  cacheBust: false,
+  scrollTo : !CONFIG.bookmark.enable
+});
+
+window.addEventListener('pjax:success', () => {
+  document.querySelectorAll('script[data-pjax], script#page-configurations, #pjax script').forEach(element => {
+    var code = element.text || element.textContent || element.innerHTML || '';
+    var parent = element.parentNode;
+    parent.removeChild(element);
+    var script = document.createElement('script');
+    if (element.id) {
+      script.id = element.id;
+    }
+    if (element.className) {
+      script.className = element.className;
+    }
+    if (element.type) {
+      script.type = element.type;
+    }
+    if (element.src) {
+      script.src = element.src;
+      // Force synchronous loading of peripheral JS.
+      script.async = false;
+    }
+    if (element.dataset.pjax !== undefined) {
+      script.dataset.pjax = '';
+    }
+    if (code !== '') {
+      script.appendChild(document.createTextNode(code));
+    }
+    parent.appendChild(script);
+  });
+  NexT.boot.refresh();
+  // Define Motion Sequence & Bootstrap Motion.
+  if (CONFIG.motion.enable) {
+    NexT.motion.integrator
+      .init()
+      .add(NexT.motion.middleWares.subMenu)
+      .add(NexT.motion.middleWares.postList)
+      .bootstrap();
+  }
+  NexT.utils.updateSidebarPosition();
+});
+</script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <div id="pjax">
+  
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments(document.querySelector('#gitalk-container'), () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '83e621afbb975e7ae373',
+      clientSecret: '51509442793886cbca7c0d7508b24c3ae0e38d28',
+      repo        : 'blog_comments',
+      owner       : 'Grizzly1127',
+      admin       : ['Grizzly1127'],
+      id          : '98114c3067fdbc9839f35e4b6705b45c',
+        language: 'zh-CN',
+      distractionFreeMode: false
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+    </div>
+<script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(e.href.match(t)||e.href.match(r))&&(e.href=a.dataset.original)})});</script><script>!function(n){n.imageLazyLoadSetting.processImages=o;var i=n.imageLazyLoadSetting.isSPA,r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]"));function o(){i&&(r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")));for(var t,e,a=0;a<r.length;a++)t=r[a],e=void 0,0<=(e=t.getBoundingClientRect()).bottom&&0<=e.left&&e.top<=(n.innerHeight||document.documentElement.clientHeight)&&function(){var t,e,n,i,o=r[a];t=o,e=function(){r=r.filter(function(t){return o!==t})},n=new Image,i=t.getAttribute("data-original"),n.onload=function(){t.src=i,e&&e()},n.src=i}()}o(),n.addEventListener("scroll",function(){var t,e;t=o,e=n,clearTimeout(t.tId),t.tId=setTimeout(function(){t.call(e)},500)})}(this);</script></body>
+</html>
