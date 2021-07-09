@@ -123,6 +123,7 @@ menu:
   vim: /categories/vim || vimeo-v
   计算机网络: /categories/net || th
   数据结构与算法: /categories/DataStructure || th
+  区块链技术: /categories/blockchain || th
   archives: /archives/ || archive
   #schedule: /schedule/ || fa fa-calendar
   #sitemap: /sitemap.xml || fa fa-sitemap
